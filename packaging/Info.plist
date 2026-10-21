@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleName</key><string>Yoz</string>
+<key>CFBundleDisplayName</key><string>Yoz</string>
+<key>CFBundleIdentifier</key><string>uz.yoz.transliterator</string>
+<key>CFBundleExecutable</key><string>Yoz</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleIconFile</key><string>Yoz.icns</string>
+<key>CFBundleShortVersionString</key><string>0.4.2</string>
+<key>CFBundleVersion</key><string>7</string>
+<key>LSMinimumSystemVersion</key><string>13.0</string>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSPrincipalClass</key><string>NSApplication</string>
+<key>NSAccessibilityUsageDescription</key><string>Yoz reads the entire focused draft and converts all its paragraphs to the new Uzbek letters when you accept a suggestion. Text stays on your Mac.</string>
+<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+<key>NSHumanReadableCopyright</key><string>Yoz 2026. Independent app inspired by Echo. Not affiliated with VoiceLab.</string>
+</dict></plist>

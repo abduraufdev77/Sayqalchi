@@ -1,0 +1,49 @@
+Yoz 0.4.2 for Apple silicon Macs · macOS 13+
+
+1. Drag Yoz into Applications and open it.
+2. Click Enable Accessibility. In System Settings > Privacy & Security >
+   Accessibility, add /Applications/Yoz.app with the + button and turn it on.
+3. If the shortcut is unavailable, quit and reopen Yoz.
+4. Double-press Right Shift, or double-click ö in the menu bar, to enable or
+   pause Yoz. New installations start paused; updates preserve your preference.
+5. The compact notch indicator animates while you type. Pause for 650 ms to
+   review a conversion of the entire editable field, including all paragraphs.
+6. Review the converted text and click the combined ⌥ ↵ button, or press
+   Option-Return. Escape
+   dismisses it. Clicking Use keeps the original editor focused.
+
+The Ö logo stays fixed on the left; only the right waveform animates.
+Converted letters appear inline in cosmic orange. The result expands smoothly by only 22 points of width;
+Ö and the waveform stay fixed, with matching result-body alignment. Idle animation stops; Low Power Mode and Reduce Motion
+also pause animation. Input-triggered checks replace rapid polling.
+
+Closing the main window keeps Yoz in the menu bar. Click the ö menu to reopen,
+pause, preview the floating bar, or quit.
+
+The Playground works without Accessibility permission. Settings includes live
+detection diagnostics, optional automatic full-text replacement after a pause,
+and app exclusions. The suggestion always covers the entire focused draft,
+even with a paragraph selected.
+The entire field is supported up to 200,000 UTF-16 units. Longer fields are not
+silently truncated: use the Playground for a smaller passage.
+
+This is a local development build signed ad hoc, not a notarized public release.
+Do not disable Gatekeeper. If macOS blocks it, use the normal Privacy & Security
+Open Anyway flow for your own local build, or build from source on this Mac.
+
+The v0.4.2 engine accepts Uzbek Latin and maps o' > ö, g' > ğ, sh > ş, ch > ç.
+It preserves case and ng. It does not translate languages, correct spelling, or
+convert Cyrillic. Other-language sh/ch words can also change; use suggestions
+or exclude those apps. The alphabet comes from the PDF you supplied.
+
+Cross-app support requires editable macOS Accessibility text fields with usable
+text and selection APIs. Custom editors, remote desktops, and some browser
+editors may not expose them. Such fields are skipped; use the Playground to copy
+the transliterated result. Password fields and Terminal are skipped.
+
+Everything runs locally. Yoz has no account, server, analytics, typed-text log,
+or clipboard monitoring. Web editors that ignore direct replacement use one
+normal paste; Yoz restores your previous clipboard unless you copied something
+newer. Copy result in the Playground intentionally updates your clipboard.
+
+Independent app inspired by Echo. Not affiliated with VoiceLab.

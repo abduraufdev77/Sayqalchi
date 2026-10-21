@@ -19,7 +19,7 @@ final class SuggestionPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
     // AppKit otherwise clamps the window below the menu bar, even when the
-    // requested frame is at screen.frame.maxY. See ClaudexBar's IslandPanel.
+    // requested frame is at screen.frame.maxY. Bypass that native frame clamp.
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
 }
 

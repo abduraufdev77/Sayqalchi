@@ -210,3 +210,13 @@ relaunching with all translation environment variables removed, MyMemory remaine
 selected, credential fields were absent, and Accessibility/shortcut stayed
 connected. The user's paused state was preserved. Final strict bundle signature
 and DMG checksum checks passed.
+
+
+## Gradient ö identity (build 15)
+
+The app icon and dashboard mark now use lowercase ö on a lavender (#AAA2F8),
+rose (#EDB4CE), and apricot (#F5C5A1) gradient. The persistent notch glyph uses the
+same gradient without changing its anchored position. All ten macOS iconset sizes
+and the ICNS were regenerated from the bundled font. The 512-point icon was
+visually checked for glyph alignment, transparency, and a smooth gradient.
+The app name remains unchanged pending the user's naming choice.

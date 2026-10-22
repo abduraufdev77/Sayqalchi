@@ -9,6 +9,9 @@ enum Design {
     static let cyan = Color(hex: 0x00DDF1)
     static let green = Color(hex: 0x91EF57)
     static let orange = Color(hex: 0xFF743D)
+    static let brandGradient = LinearGradient(
+        colors: [Color(hex: 0xAAA2F8), Color(hex: 0xEDB4CE), Color(hex: 0xF5C5A1)],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
     static func font(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .custom("Figtree-Regular", size: size).weight(weight) }
     static func registerFonts() {
         // SwiftPM's generated Bundle.module points beside the .app. Resolve installed
@@ -46,9 +49,9 @@ struct ActionButton: View {
 struct YozMark: View {
     var size: CGFloat = 34
     var body: some View {
-        Text("y").font(Design.font(size * 0.94, .semibold)).offset(y: -size * 0.08)
+        Text("ö").font(Design.font(size * 0.8, .medium)).offset(y: -size * 0.015)
             .frame(width: size, height: size).foregroundStyle(Design.ink)
-            .background(Design.cyan, in: RoundedRectangle(cornerRadius: size * 0.28))
+            .background(Design.brandGradient, in: RoundedRectangle(cornerRadius: size * 0.28))
     }
 }
 

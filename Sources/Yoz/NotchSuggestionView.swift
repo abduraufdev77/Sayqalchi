@@ -170,7 +170,7 @@ struct NotchActivityView: View {
     var body: some View {
         let layout = NotchLayout(notchWidth: notchWidth)
         HStack(spacing: 0) {
-            Text("Ö").font(Design.font(20, .medium)).foregroundStyle(Design.cyan)
+            Text("ö").font(Design.font(23, .medium)).foregroundStyle(Design.brandGradient)
                 .frame(width: NotchLayout.logoSize.width, height: NotchLayout.logoSize.height)
                 .frame(width: layout.earContentWidth, alignment: .leading)
             Color.clear.frame(width: layout.notchWidth)

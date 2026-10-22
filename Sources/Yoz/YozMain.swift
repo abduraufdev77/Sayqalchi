@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         Design.registerFonts()
         makeMenu()
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1070, height: 790), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
-        window.title = "Yoz"
+        window.title = "Sayqalchi"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.backgroundColor = NSColor(srgbRed: 0.973, green: 0.973, blue: 0.957, alpha: 1)
@@ -60,14 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "ö"
         statusItem.button?.font = NSFont(name: "Figtree-Regular", size: 19)
-        statusItem.button?.toolTip = "Yoz · Uzbek transliteration"
+        statusItem.button?.toolTip = "Sayqalchi · Writing assistant"
         let menu = NSMenu()
-        menu.addItem(withTitle: "Open Yoz", action: #selector(showWindow), keyEquivalent: "")
+        menu.addItem(withTitle: "Open Sayqalchi", action: #selector(showWindow), keyEquivalent: "")
         menu.addItem(withTitle: "Pause / resume", action: #selector(toggleEnabled), keyEquivalent: "")
         menu.addItem(withTitle: "Writing tools", action: #selector(openAssistant), keyEquivalent: "")
         menu.addItem(withTitle: "Preview notch", action: #selector(preview), keyEquivalent: "")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Yoz", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Sayqalchi", action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         statusMenu = menu
         statusItem.button?.target = self
@@ -75,7 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         model.$enabled.removeDuplicates().sink { [weak self] enabled in
             self?.statusItem.button?.appearsDisabled = !enabled
-            self?.statusItem.button?.toolTip = enabled ? "Yoz on · double-click to pause" : "Yoz paused · double-click to enable"
+            self?.statusItem.button?.toolTip = enabled ? "Sayqalchi on · double-click to pause" : "Sayqalchi paused · double-click to enable"
         }.store(in: &subscriptions)
         model.monitor = TypingMonitor(model: model)
         let assistant = model.assistant
@@ -270,9 +270,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func makeMenu() {
         let menu = NSMenu()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About Yoz", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About Sayqalchi", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit Yoz", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Sayqalchi", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appItem = NSMenuItem(); appItem.submenu = appMenu; menu.addItem(appItem)
         let edit = NSMenu(title: "Edit")
         for (name, action, key) in [("Undo", Selector(("undo:")), "z"), ("Cut", #selector(NSText.cut(_:)), "x"), ("Copy", #selector(NSText.copy(_:)), "c"), ("Paste", #selector(NSText.paste(_:)), "v"), ("Select All", #selector(NSText.selectAll(_:)), "a")] {
@@ -285,7 +285,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel = SuggestionPanel(contentRect: NSRect(x: 0, y: 0, width: 600, height: 222), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         // The island touches the physical display edge and covers the menu bar
         // only within its own silhouette, like a hardware notch extension.
-        panel.title = "Yoz Notch"
+        panel.title = "Sayqalchi Notch"
         panel.isFloatingPanel = true
         // isFloatingPanel resets level: assign the menu-bar overlay level last.
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 3)

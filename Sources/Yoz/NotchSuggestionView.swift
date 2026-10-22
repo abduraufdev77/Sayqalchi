@@ -98,8 +98,8 @@ struct NotchRootView: View {
         }
         .onHover(perform: state.hover)
         .contextMenu {
-            Button("Open Yoz", action: state.open)
-            Button("Pause Yoz", action: state.toggle)
+            Button("Open Sayqalchi", action: state.open)
+            Button("Pause Sayqalchi", action: state.toggle)
         }
         .preferredColorScheme(.dark)
     }
@@ -194,7 +194,7 @@ struct NotchActivityView: View {
                 lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(resultReady ? "Yoz result ready" : isTyping ? "Yoz is following your typing" : "Yoz enabled")
-            .help(isTyping ? "Typing… pause to review all converted text" : "Yoz is enabled")
+            .accessibilityLabel(resultReady ? "Sayqalchi result ready" : isTyping ? "Sayqalchi is following your typing" : "Sayqalchi enabled")
+            .help(isTyping ? "Typing… pause to review all converted text" : "Sayqalchi is enabled")
     }
 }

@@ -220,3 +220,26 @@ same gradient without changing its anchored position. All ten macOS iconset size
 and the ICNS were regenerated from the bundled font. The 512-point icon was
 visually checked for glyph alignment, transparency, and a smooth gradient.
 The app name remains unchanged pending the user's naming choice.
+
+
+## Sayqalchi rename (build 16)
+
+The display name, app menus, dashboard, tooltips, accessibility labels, installer
+volume and app filename now use Sayqalchi. The gradient ö identity is retained.
+The bundle identifier (uz.yoz.transliterator), Keychain service, preference domain,
+window autosave key, internal SwiftPM target and executable remain unchanged so
+existing state and signing requirements continue to match. The development build
+keeps the original dist/Yoz.app canonical path with a dist/Sayqalchi.app launch
+link, avoiding a stale second copy and retaining the path-bound local grant.
+Repository URLs and the historical Yoz 0.4.2 release retain their real names.
+
+Native verification found that changing the canonical app directory prompted for
+Accessibility despite identical signing requirements. Keeping the original local
+canonical directory restored Ready to write immediately. The app window, menu bar,
+sidebar and menus now say Sayqalchi; the DMG contains an actual Sayqalchi.app.
+
+Final verification: the renamed window/menu and gradient logo were visually checked.
+Settings still showed the user's selected default tool and custom provider, with
+Accessibility Connected · shortcut active. The DMG was mounted read-only and
+verified to contain a regular Sayqalchi.app (not a symlink), the unchanged bundle
+identifier, and a valid strict signature. The checksum and credential audit passed.

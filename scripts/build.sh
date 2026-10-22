@@ -6,7 +6,7 @@ YOZ_BUILD_DIR="$(swift build -c release --show-bin-path)"
 mkdir -p "$PWD/dist"
 YOZ_STAGE="$(mktemp -d "$PWD/dist/.yoz-build.XXXXXX")"
 trap 'rm -rf "$YOZ_STAGE"' EXIT
-YOZ_APP="$YOZ_STAGE/Yoz.app"
+YOZ_APP="$YOZ_STAGE/Sayqalchi.app"
 mkdir -p "$YOZ_APP/Contents/MacOS" "$YOZ_APP/Contents/Resources"
 cp "$YOZ_BUILD_DIR/Yoz" "$YOZ_APP/Contents/MacOS/Yoz"
 # Replace generated resources so stale/read-only dependency notices cannot break rebuilds.
@@ -32,11 +32,15 @@ if [[ -z "$YOZ_SIGNER" ]]; then
 fi
 codesign --force --deep --sign "$YOZ_SIGNER" --identifier uz.yoz.transliterator "$YOZ_APP"
 codesign --verify --deep --strict "$YOZ_APP"
-# Never overwrite a running executable's mapped pages or expose an unsigned
-# half-built bundle at its normal launch path.
-if [[ -d "$PWD/dist/Yoz.app" ]]; then mv "$PWD/dist/Yoz.app" "$YOZ_STAGE/previous.app"; fi
+# Keep the canonical local path: macOS Accessibility grants can be path-bound.
+# The display name is Sayqalchi, and a new-name link opens this same signed app.
+if [[ -e "$PWD/dist/Yoz.app" || -L "$PWD/dist/Yoz.app" ]]; then mv "$PWD/dist/Yoz.app" "$YOZ_STAGE/previous.app"; fi
 if ! mv "$YOZ_APP" "$PWD/dist/Yoz.app"; then
-    if [[ -d "$YOZ_STAGE/previous.app" ]]; then mv "$YOZ_STAGE/previous.app" "$PWD/dist/Yoz.app"; fi
+    if [[ -e "$YOZ_STAGE/previous.app" || -L "$YOZ_STAGE/previous.app" ]]; then mv "$YOZ_STAGE/previous.app" "$PWD/dist/Yoz.app"; fi
     exit 1
 fi
-echo "Built: $PWD/dist/Yoz.app"
+if [[ -d "$PWD/dist/Sayqalchi.app" && ! -L "$PWD/dist/Sayqalchi.app" ]]; then
+    mv "$PWD/dist/Sayqalchi.app" "$YOZ_STAGE/previous-name.app"
+fi
+ln -sfn Yoz.app "$PWD/dist/Sayqalchi.app"
+echo "Built: $PWD/dist/Sayqalchi.app"

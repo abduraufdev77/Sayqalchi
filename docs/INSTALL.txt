@@ -1,11 +1,11 @@
-Yoz 0.5.0 preview for Apple silicon Macs · macOS 13+
+Sayqalchi 0.5.0 preview for Apple silicon Macs · macOS 13+
 
-1. Drag Yoz into Applications and open it.
+1. Drag Sayqalchi into Applications and open it.
 2. Click Enable Accessibility. In System Settings > Privacy & Security >
-   Accessibility, add /Applications/Yoz.app with the + button and turn it on.
-3. If the shortcut is unavailable, quit and reopen Yoz.
+   Accessibility, add /Applications/Sayqalchi.app with the + button and turn it on.
+3. If the shortcut is unavailable, quit and reopen Sayqalchi.
 4. Double-press Right Shift, or double-click ö in the menu bar, to enable or
-   pause Yoz. New installations start paused; updates preserve your preference.
+   pause Sayqalchi. New installations start paused; updates preserve your preference.
 5. The compact notch indicator animates while you type. Pause for 650 ms to
    review a conversion of the entire editable field, including all paragraphs.
 6. Review the converted text and click the combined ⌥ ↵ button, or press
@@ -17,7 +17,7 @@ Converted letters appear inline in cosmic orange. The result expands smoothly by
 Ö and the waveform stay fixed, with matching result-body alignment. Idle animation stops; Low Power Mode and Reduce Motion
 also pause animation. Input-triggered checks replace rapid polling.
 
-Closing the main window keeps Yoz in the menu bar. Click the ö menu to reopen,
+Closing the main window keeps Sayqalchi in the menu bar. Click the ö menu to reopen,
 pause, preview the floating bar, or quit.
 
 The Playground works without Accessibility permission. Settings includes live
@@ -29,7 +29,7 @@ silently truncated: use the Playground for a smaller passage.
 
 This preview is locally signed and is not Apple-notarized. A certificate-signed
 build keeps its identity across updates. If you previously approved an ad-hoc
-build, remove that old Yoz entry in Accessibility, then add this Yoz app once.
+build, remove that old Yoz entry in Accessibility, then add this Sayqalchi app once.
 Do not disable Gatekeeper. If macOS blocks it, use the normal Privacy & Security
 Open Anyway flow for your own local build, or build from source on this Mac.
 
@@ -42,8 +42,8 @@ text and selection APIs. Custom editors, remote desktops, and some browser
 editors may not expose them. Such fields are skipped; use the Playground to copy
 the transliterated result. Password fields and Terminal are skipped.
 
-Formatting and document helpers run locally. While enabled, typing pauses automatically prepare translation and dictionary results online. Yoz has no analytics, typed-text log, or clipboard monitoring. Web editors that ignore direct replacement use one
-normal paste; Yoz restores your previous clipboard unless you copied something
+Formatting and document helpers run locally. While enabled, typing pauses automatically prepare translation and dictionary results online. Sayqalchi has no analytics, typed-text log, or clipboard monitoring. Web editors that ignore direct replacement use one
+normal paste; Sayqalchi restores your previous clipboard unless you copied something
 newer. Copy result in the Playground intentionally updates your clipboard.
 
 Independent app inspired by Echo. Not affiliated with VoiceLab.

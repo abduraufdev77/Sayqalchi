@@ -34,7 +34,7 @@ struct RootView: View {
     }
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) { YozMark(); Text("Yoz").font(Design.font(26, .semibold)).tracking(-1) }.padding(.top, 32).padding(.bottom, 7)
+            HStack(spacing: 10) { YozMark(); Text("Sayqalchi").font(Design.font(26, .semibold)).tracking(-1) }.padding(.top, 32).padding(.bottom, 7)
             Text("A little shift in your letters.").font(Design.font(11)).foregroundStyle(Design.muted).padding(.bottom, 38)
             ForEach(AppSection.allCases, id: \.self) { section in
                 Button { model.section = section } label: {
@@ -54,7 +54,7 @@ struct RootView: View {
                 Text("Your default tool after a pause.\nOther tools when you choose.").font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(4)
             }.padding(.bottom, 23)
             Rectangle().fill(Design.line).frame(height: 1)
-            HStack { Text("YOZ FOR MAC").tracking(1.5); Spacer(); Text("v0.5.0") }.font(Design.font(9, .medium)).foregroundStyle(Design.muted).padding(.top, 18)
+            HStack { Text("SAYQALCHI FOR MAC").tracking(1.5); Spacer(); Text("v0.5.0") }.font(Design.font(9, .medium)).foregroundStyle(Design.muted).padding(.top, 18)
         }.padding(.horizontal, 18).padding(.bottom, 25).background(Color(hex: 0xEFEFEA))
     }
 }
@@ -206,7 +206,7 @@ struct AlphabetView: View {
                     VStack(spacing: 8) { Text(letter).font(Design.font(28)); Text(letter.lowercased()).font(Design.font(15)).foregroundStyle(Design.muted) }.frame(maxWidth: .infinity).frame(height: 78).background(["Ö", "Ğ", "Ş", "Ç"].contains(letter) ? Design.cyan.opacity(0.15) : .white, in: RoundedRectangle(cornerRadius: 11))
                 }
             }
-            Text("“ng” stays as two letters. The apostrophe in ma’no is retained. Yoz accepts straight, curly and modifier apostrophes after o and g, and preserves uppercase letters.").font(Design.font(12)).foregroundStyle(Design.muted).lineSpacing(5)
+            Text("“ng” stays as two letters. The apostrophe in ma’no is retained. Sayqalchi accepts straight, curly and modifier apostrophes after o and g, and preserves uppercase letters.").font(Design.font(12)).foregroundStyle(Design.muted).lineSpacing(5)
         }
     }
 }
@@ -216,7 +216,7 @@ struct SettingsView: View {
     @State private var apps: [NSRunningApplication] = []
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
-            SectionHeading(eyebrow: "Make it yours", title: "A flow that fits you.", subtitle: "Choose how Yoz suggests and where it stays quiet.")
+            SectionHeading(eyebrow: "Make it yours", title: "A flow that fits you.", subtitle: "Choose how Sayqalchi suggests and where it stays quiet.")
             DefaultServiceSettingsView(assistant: model.assistant)
             VStack(alignment: .leading, spacing: 8) {
                 HStack { Circle().fill(Design.green).frame(width: 6, height: 6); Text("Live detection").font(Design.font(14, .medium)); Spacer(); Text("0.65 s pause").font(Design.font(11)).foregroundStyle(Design.muted) }
@@ -242,7 +242,7 @@ struct SettingsView: View {
                 HStack { Text("Accept suggestion"); Spacer(); Text("⌥ Return").font(.system(size: 12, design: .monospaced)).padding(8).background(Design.paper, in: RoundedRectangle(cornerRadius: 7)) }
                 HStack {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Enable / pause Yoz")
+                        Text("Enable / pause Sayqalchi")
                         Text("Double-press Right Shift, or double-click ö in the menu bar.").font(Design.font(11)).foregroundStyle(Design.muted)
                     }
                     Spacer()
@@ -266,7 +266,7 @@ struct SettingsView: View {
                 }
             }.padding(22).background(.white, in: RoundedRectangle(cornerRadius: 15))
             HStack {
-                VStack(alignment: .leading, spacing: 5) { Text("Accessibility").font(Design.font(15, .medium)); Text(model.accessibilityGranted ? (model.shortcutReady ? "Connected · shortcut active" : "Connected · reconnecting shortcut…") : "Allow Yoz in Privacy & Security → Accessibility").font(Design.font(11)).foregroundStyle(Design.muted) }
+                VStack(alignment: .leading, spacing: 5) { Text("Accessibility").font(Design.font(15, .medium)); Text(model.accessibilityGranted ? (model.shortcutReady ? "Connected · shortcut active" : "Connected · reconnecting shortcut…") : "Allow Sayqalchi in Privacy & Security → Accessibility").font(Design.font(11)).foregroundStyle(Design.muted) }
                 Spacer()
                 ActionButton(title: "Open settings", icon: "arrow.up.right") { model.openPermissions() }
             }

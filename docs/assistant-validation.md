@@ -64,3 +64,16 @@ Physical hover timing and assistant replacement in Telegram/Office still require
 live acceptance with those editors; they are not recorded as verified here.
 
 The build is ad-hoc signed for local preview, not Developer-ID signed or notarized.
+
+## Hover collapse update (build 9)
+
+The hover close now ignores duplicate geometry targets while a resize is in
+flight. This preserves the native canvas until the silhouette finishes shrinking;
+reversing hover preserves the current canvas as well. A bounded cleanup restores
+the small native window after the animation. Expansion and collapse both use a
+0.46-second spring response. Low Power Mode pauses the continuous waveform but
+keeps the brief resize fluid; the explicit Reduce Motion preference still applies.
+
+Native collapse captures show intermediate silhouette heights of approximately
+320 → 132 → 43 → 33 points. These use the same close path as hover exit, including
+the assistant's immediate and debounced updates. The existing 35 tests pass.

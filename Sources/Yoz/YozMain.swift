@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var subscriptions = Set<AnyCancellable>()
     private let notch = NotchPresentation()
     private var transitionID = 0
+    private var presentedFrame: CGRect?
+    private var resizeInFlight = false
     private var statusMenu: NSMenu!
     private var menuClick: DispatchWorkItem?
     private var previewing = false
@@ -176,9 +178,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 }
             }
         }
-        if CommandLine.arguments.contains("--assistant-gallery") && !CommandLine.arguments.contains("--hold-gallery") {
+        if let i = CommandLine.arguments.firstIndex(of: "--assistant-gallery"), CommandLine.arguments.count > i + 1,
+           !CommandLine.arguments.contains("--hold-gallery") {
+            let directory = CommandLine.arguments[i + 1]
             DispatchQueue.main.asyncAfter(deadline: .now() + 9) { [weak self] in
-                self?.previewing = false; self?.model.assistant.close()
+                self?.model.assistant.close()
+                for (delay, name) in [(0.03, "start"), (0.16, "middle"), (0.32, "late"), (1.1, "end")] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                        self?.capturePanel(to: directory + "/assistant-collapse-" + name + ".png")
+                    }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self?.previewing = false }
             }
         }
         if let i = CommandLine.arguments.firstIndex(of: "--assistant-live-check"), CommandLine.arguments.count > i + 1 {
@@ -359,20 +369,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
     private func present(frame: CGRect, screen: NSScreen, mode: String, update: () -> Void) {
+        // Published assistant changes also deliver a debounced resize. If that
+        // repeats an in-flight target, keep its canvas until the morph finishes;
+        // rebuilding it from the target size would clip the collapse instantly.
+        if panel.isVisible, panel.screen == screen, presentedFrame == frame {
+            update()
+            return
+        }
+        presentedFrame = frame
         transitionID += 1
         let id = transitionID
         let animate = panel.isVisible && panel.screen == screen
         let metrics = notchMetrics(screen)
-        let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || ProcessInfo.processInfo.isLowPowerModeEnabled
+        // A brief resize stays fluid in Low Power Mode; the continuous waveform
+        // already pauses there. Respect the explicit Reduce Motion preference.
+        let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         notch.reducedMotion = reduced
-        // Extra transparent room lets the spring finish without clipping. Both
-        // target widths differ by 22 pt, so their native pixel rounding agrees.
+        // Extra transparent room lets either direction of the spring finish
+        // without clipping the island before its native window is resized.
         let previous = CGRect(x: metrics.center - notch.width / 2, y: frame.maxY - notch.height,
                               width: notch.width, height: notch.height)
         let union = animate ? previous.union(frame) : frame
-        let canvas = animate && !reduced
+        let padded = animate && !reduced
             ? CGRect(x: union.minX - 10, y: union.minY - 16, width: union.width + 20, height: union.height + 16)
             : union
+        // Reversing a hover mid-animation must also retain the room occupied by
+        // the current presentation, rather than just its previous target size.
+        let canvas = animate && resizeInFlight ? padded.union(panel.frame) : padded
+        resizeInFlight = animate
         panel.setFrame(canvas, display: true)
         let offset = metrics.center - panel.frame.midX
         if abs(notch.contentOffsetX - offset) > 0.01 {
@@ -382,6 +406,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.contentView?.layoutSubtreeIfNeeded()
         let settle = { [weak self] in
             guard let self, self.transitionID == id else { return }
+            self.resizeInFlight = false
             self.panel.setFrame(frame, display: true)
             let offset = metrics.center - self.panel.frame.midX
             if abs(self.notch.contentOffsetX - offset) > 0.01 {
@@ -398,13 +423,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             settle()
         } else {
             let animation: Animation = reduced ? .easeOut(duration: 0.15)
-                : .spring(response: mode == "expanded" ? 0.46 : 0.34, dampingFraction: mode == "expanded" ? 0.84 : 0.92)
+                : .spring(response: 0.46, dampingFraction: mode == "expanded" ? 0.84 : 0.92)
             if #available(macOS 14.0, *) {
                 withAnimation(animation, completionCriteria: .removed, changes, completion: settle)
             } else {
                 withAnimation(animation, changes)
-                DispatchQueue.main.asyncAfter(deadline: .now() + (reduced ? 0.2 : 0.9), execute: settle)
             }
+            // SwiftUI may retain a removed-animation completion while other
+            // observed content updates. Bound the transparent native canvas's
+            // lifetime; transitionID makes this safe if hover reverses again.
+            DispatchQueue.main.asyncAfter(deadline: .now() + (reduced ? 0.2 : 0.9), execute: settle)
         }
         panel.orderFrontRegardless()
         if mode == "expanded" {

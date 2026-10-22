@@ -83,6 +83,7 @@ private struct PreparedResult {
 
 final class AssistantModel: ObservableObject {
     @Published var visible = false
+    @Published private(set) var resultPresented = false
     @Published var details = false
     @Published var editing = false
     @Published var tool: WritingTool = .format
@@ -120,6 +121,7 @@ final class AssistantModel: ObservableObject {
     private var preparedForInput: String?
     private var appliedDraft: (input: TypingMonitor.Input, text: String)?
     private var dictionaryQuery = ""
+    private var dismissedInput: String?
     private var cache: [String: (Date, DictionaryEntry)] = [:]
     weak var app: AppModel?
     var automaticTranslationAllowed: (() -> Bool)?
@@ -182,6 +184,7 @@ final class AssistantModel: ObservableObject {
         preparedForInput = nil; waitingForPause = false; appliedNotice = ""
     }
     func close() {
+        dismissedInput = input; resultPresented = false
         if editing { resetResult(); input = ""; context = nil }
         visible = false; details = false; editing = false
         tool = defaultTool; cancelUnneededWork(); prepareRequestedTools()
@@ -204,7 +207,8 @@ final class AssistantModel: ObservableObject {
     }
     func draftWillChange(resetApplied: Bool = true) {
         guard followsDraft else { return }
-        if resetApplied { appliedDraft = nil }
+        if resetApplied { appliedDraft = nil; dismissedInput = nil }
+        collapseAutomaticResult()
         pendingPreparation?.cancel(); pendingPreparation = nil
         tasks.values.forEach { $0.cancel() }; tasks.removeAll()
         generation = UUID(); requestIDs.removeAll()
@@ -229,6 +233,7 @@ final class AssistantModel: ObservableObject {
             prepareRequestedTools()
             return
         }
+        dismissedInput = nil
         resetResult(); context = draft; input = draft.text
         sourceName = NSRunningApplication(processIdentifier: draft.pid)?.localizedName ?? "Current draft"
         scope = "Entire draft"
@@ -236,11 +241,12 @@ final class AssistantModel: ObservableObject {
     }
     func clearLiveDraft() {
         guard followsDraft else { return }
+        collapseAutomaticResult()
         if context != nil || anyBusy || waitingForPause || !input.isEmpty || !prepared.isEmpty {
             resetResult(); context = nil; input = ""
         }
     }
-    func stopWork() { resetResult(); context = nil }
+    func stopWork() { collapseAutomaticResult(); resetResult(); context = nil }
     /// Used for manual input and diagnostics; normal drafts arrive after the
     /// monitor's pause detector and are processed whether the widget is open.
     func run() { resetResult(); prepareSnapshot() }
@@ -260,6 +266,22 @@ final class AssistantModel: ObservableObject {
             case .dictionary: if automaticEnabled { prepareDictionary() }
             }
         }
+        revealPreparedResult()
+    }
+    private func revealPreparedResult() {
+        guard automaticEnabled, !editing, !waitingForPause, context != nil,
+              preparedForInput == input, dismissedInput != input,
+              let result = prepared[tool], !result.busy else { return }
+        let hasResult = result.entry != nil || !result.error.isEmpty
+            || (!result.text.isEmpty && (tool != .format || result.text != input))
+        guard hasResult, !resultPresented else { return }
+        resultPresented = true; visible = true; app?.assistantActive = true
+        resize?()
+    }
+    private func collapseAutomaticResult() {
+        guard resultPresented else { return }
+        resultPresented = false; visible = false; details = false
+        tool = defaultTool; app?.assistantActive = false; resize?()
     }
     private func cancelWork(for tool: WritingTool) {
         tasks.removeValue(forKey: tool)?.cancel(); requestIDs[tool] = nil
@@ -298,6 +320,7 @@ final class AssistantModel: ObservableObject {
                     }
                     guard !Task.isCancelled, isCurrent(.translate, ticket) else { return }
                     prepared[.translate] = PreparedResult(text: result)
+                    revealPreparedResult()
                 } catch { finish(error, tool: .translate, ticket: ticket) }
             }
         } catch { finish(error, tool: .translate, ticket: ticket) }
@@ -307,7 +330,7 @@ final class AssistantModel: ObservableObject {
         do {
             let query = try DictionaryService.normalizedQuery(dictionaryQuery)
             if let cached = cache[query], Date().timeIntervalSince(cached.0) < 600 {
-                prepared[.dictionary] = PreparedResult(entry: cached.1); return
+                prepared[.dictionary] = PreparedResult(entry: cached.1); revealPreparedResult(); return
             }
             tasks[.dictionary] = Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -317,6 +340,7 @@ final class AssistantModel: ObservableObject {
                     if cache.count >= 40 { cache.removeAll() }
                     cache[query] = (Date(), result)
                     prepared[.dictionary] = PreparedResult(entry: result)
+                    revealPreparedResult()
                 } catch { finish(error, tool: .dictionary, ticket: ticket) }
             }
         } catch { finish(error, tool: .dictionary, ticket: ticket) }
@@ -329,6 +353,7 @@ final class AssistantModel: ObservableObject {
             message = "The service could not establish HTTPS. Check its URL and TLS configuration in Settings."
         } else { message = (error as? AssistantError)?.localizedDescription ?? "Could not reach the source. Check the connection and refresh to retry." }
         prepared[tool] = PreparedResult(error: message)
+        revealPreparedResult()
     }
     func apply() {
         guard canApply, let context else { return }

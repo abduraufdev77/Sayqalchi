@@ -197,17 +197,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             model.monitor = nil
             let assistant = model.assistant
             assistant.automaticTranslationAllowed = { true }
+            assistant.defaultTool = .format
             let sample = "O'zbekcha yozish oson.\n\nYangi g'oyalar va yaxshi jamoa."
             assistant.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: (sample as NSString).length, length: 0), text: sample))
             assistant.sourceName = "SAMPLE DRAFT"
-            assistant.open(capture: false)
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 for _ in 0..<1200 {
                     if !assistant.anyBusy { break }
                     try? await Task.sleep(nanoseconds: 100_000_000)
                 }
-                var report: [String: Any] = [:]
+                var report: [String: Any] = ["automaticPresentation": ["visible": assistant.visible, "pinned": assistant.resultPresented, "canApply": assistant.canApply]]
                 for tool in WritingTool.allCases {
                     assistant.choose(tool)
                     for _ in 0..<1200 {
@@ -314,8 +314,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let work = DispatchWorkItem { [weak self] in self?.model.assistant.open() }
             hoverWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
-        } else if !inside && model.assistant.visible && !model.assistant.details && !model.assistant.editing {
-            let work = DispatchWorkItem { [weak self] in self?.model.assistant.close() }
+        } else if !inside && model.assistant.visible && !model.assistant.resultPresented && !model.assistant.details && !model.assistant.editing {
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, !self.model.assistant.resultPresented else { return }
+                self.model.assistant.close()
+            }
             hoverWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.55, execute: work)
         }

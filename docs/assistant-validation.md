@@ -130,3 +130,23 @@ certificate-signed app reports Ready to write and Connected · shortcut active.
 The default Format badge was visually checked in Settings. Two rebuilt binaries
 have identical certificate-based designated requirements. The DMG checksum,
 image integrity, and strict bundle signature verification pass.
+
+
+## Automatic result presentation (build 12)
+
+A completed result from the default service now expands the notch automatically,
+without hover. It stays open for Option Return, Escape, or the close button;
+hover exit (including an already scheduled exit) cannot dismiss it. New typing
+collapses the result and invalidates Use immediately. Completed translations open
+only after the final stream event. Errors also become visible. Dismissal survives
+caret movement and the unchanged draft; a fresh edit allows the next result.
+Unchanged formatter output does not produce a replacement popup. Other services
+still run only when opened, unless configured as default.
+
+Validation: all 51 tests pass. The native synthetic check no longer calls open()
+after receiving its stable sample draft: it reports visible=true, pinned=true,
+and canApply=true. Format and live Translate screenshots were inspected with
+the two-paragraph result and combined Option Return accept button. The latest
+DMG checksum and strict app signature checks pass. The UI automation could edit
+the separate local editor but could not bring it to the foreground, so the
+physical cross-app Option Return action was not revalidated in this check.

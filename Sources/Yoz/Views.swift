@@ -90,7 +90,7 @@ struct OverviewView: View {
                 Image(systemName: model.accessibilityGranted ? "checkmark.shield" : "hand.raised").font(.system(size: 23, weight: .light)).frame(width: 46, height: 46).background(Design.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 5) {
                     Text(model.accessibilityGranted ? "You're ready to write." : "One permission. Every app.").font(Design.font(15, .medium))
-                    Text(model.accessibilityGranted ? "Pause, hover the notch, and choose a prepared result." : "Enable Accessibility to suggest letters while you type in other apps.").font(Design.font(11)).foregroundStyle(Design.muted)
+                    Text(model.accessibilityGranted ? "Pause to see your result. Press ⌥ Return to use it." : "Enable Accessibility to suggest letters while you type in other apps.").font(Design.font(11)).foregroundStyle(Design.muted)
                 }
                 Spacer()
                 if !model.accessibilityGranted {

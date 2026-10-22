@@ -200,6 +200,44 @@ final class AutomaticTranslationTests: XCTestCase {
         XCTAssertEqual(second.tool, .document)
     }
 
+    func testFormattedDraftAutomaticallyOpensWithoutHoverAndDismissalSticks() async throws {
+        let model = assistant(); model.defaultTool = .format; model.close()
+        let element = AXUIElementCreateApplication(getpid())
+        let draft = TypingMonitor.Input(element: element, pid: getpid(), caret: CFRange(location: 9, length: 0), text: "O'zbekcha")
+        model.receiveStableDraft(draft)
+        XCTAssertTrue(model.visible); XCTAssertTrue(model.resultPresented)
+        XCTAssertEqual(model.output, "Özbekça"); XCTAssertTrue(model.canApply)
+        XCTAssertTrue(AutomaticTranslationProtocol.allRequests.isEmpty)
+        model.close()
+        model.draftWillChange(resetApplied: false); model.receiveStableDraft(draft)
+        XCTAssertFalse(model.visible, "Caret movement must not reopen a dismissed result")
+        model.draftWillChange()
+        model.receiveStableDraft(.init(element: element, pid: getpid(), caret: CFRange(location: 6, length: 0), text: "shahar"))
+        XCTAssertTrue(model.visible); XCTAssertEqual(model.output, "şahar")
+        model.stopWork(); model.close()
+    }
+
+    func testTranslationOpensOnlyAfterCompletionAndResumedTypingCollapsesIt() async throws {
+        let model = assistant(); model.close()
+        AutomaticTranslationProtocol.responseDelay = 0.1
+        let element = AXUIElementCreateApplication(getpid())
+        model.receiveStableDraft(.init(element: element, pid: getpid(), caret: CFRange(location: 5, length: 0), text: "Salom"))
+        XCTAssertFalse(model.visible); XCTAssertTrue(model.busy)
+        try await waitUntil { model.resultPresented }
+        XCTAssertTrue(model.visible); XCTAssertTrue(model.canApply)
+        XCTAssertEqual(model.output, "Translated: Salom")
+        model.draftWillChange()
+        XCTAssertFalse(model.visible); XCTAssertFalse(model.resultPresented); XCTAssertFalse(model.canApply)
+        model.stopWork(); model.close()
+    }
+
+    func testUnchangedFormatterTextDoesNotOpenEmptySuggestion() {
+        let model = assistant(); model.defaultTool = .format; model.close()
+        model.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: 5, length: 0), text: "Salom"))
+        XCTAssertFalse(model.visible); XCTAssertFalse(model.resultPresented); XCTAssertFalse(model.canApply)
+        model.stopWork()
+    }
+
     func testCaretMovementKeepsPreparedTranslationWithoutResendingDraft() async throws {
         let model = assistant(); let element = AXUIElementCreateApplication(getpid())
         model.receiveStableDraft(.init(element: element, pid: getpid(), caret: CFRange(location: 5, length: 0), text: "jamoa"))

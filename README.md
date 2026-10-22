@@ -28,7 +28,7 @@ A native assistant that grows out of your Mac’s notch.
 <img src="docs/assistant-preview.png" alt="Yoz 0.5 preview with animated tool tabs and separate source and target language badges" width="560">
 </div>
 
-After a typing pause, Yoz opens the completed result automatically. Hover over Ö to reveal the tool strip at other times. The logo and waveform keep their
+After a typing pause, Yoz opens a compact result automatically, sized to its text. Hover over Ö to reveal the full tool strip; More opens the larger detail view. The logo and waveform keep their
 positions while the black island expands below the camera. Only your default service runs after a typing pause. Its tab is electric green;
 open another tab to run that service on demand. Review the result and copy it or replace the captured draft with **⌥ ↵**. Automatic results stay open until you accept, dismiss, or resume typing; hovering is optional.
 

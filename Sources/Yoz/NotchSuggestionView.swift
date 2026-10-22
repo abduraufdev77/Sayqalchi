@@ -67,7 +67,10 @@ struct NotchRootView: View {
     var body: some View {
         ZStack(alignment: .top) {
             if let assistant = state.assistant, assistant.visible {
-                AssistantNotchView(assistant: assistant)
+                Group {
+                    if assistant.compactResult { AssistantCompactResultView(assistant: assistant) }
+                    else { AssistantNotchView(assistant: assistant) }
+                }
                     .frame(width: state.contentWidth, height: state.contentHeight)
                     .padding(.top, state.safeTop + 7)
                     .transition(.opacity)
@@ -88,7 +91,7 @@ struct NotchRootView: View {
         // The persistent band lives outside the morphing/clipping layer. Its
         // coordinate updates commit immediately when the native canvas changes.
         .overlay(alignment: .top) {
-            NotchActivityView(isTyping: state.typing || state.settling, notchWidth: state.notchWidth, resultReady: state.result)
+            NotchActivityView(isTyping: state.typing || state.settling, notchWidth: state.notchWidth, resultReady: state.result || state.assistant?.resultPresented == true)
                 .frame(width: NotchLayout(notchWidth: state.notchWidth).bandWidth, height: state.safeTop)
                 .offset(x: state.contentOffsetX)
                 .transaction { $0.animation = nil }

@@ -3,6 +3,53 @@ import SwiftUI
 import AssistantCore
 import TransliterationCore
 
+/// The automatic result uses the original narrow notch footprint. Full tools
+/// remain available through hover; More pins the larger detail view.
+struct AssistantCompactResultView: View {
+    @ObservedObject var assistant: AssistantModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 5) {
+                Text(assistant.tool.rawValue).foregroundStyle(Design.green)
+                Text("· " + assistant.sourceName).foregroundStyle(.white.opacity(0.45)).lineLimit(1)
+                Spacer(minLength: 2)
+                Button { assistant.close() } label: {
+                    Image(systemName: "xmark").font(.system(size: 9, weight: .semibold)).frame(width: 20, height: 18)
+                }.buttonStyle(PointerButtonStyle()).foregroundStyle(.white.opacity(0.55)).accessibilityLabel("Dismiss suggestion")
+            }.font(Design.font(8, .semibold))
+            ScrollView {
+                result.font(Design.font(14, .medium)).lineSpacing(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            HStack(spacing: 10) {
+                Button { assistant.copy() } label: { Image(systemName: "doc.on.doc").frame(width: 20, height: 28) }
+                    .accessibilityLabel("Copy result")
+                Button { assistant.details = true; assistant.resize?() } label: {
+                    Text("More").font(Design.font(9, .medium)).frame(height: 28)
+                }.accessibilityLabel("Show result details")
+                Spacer(minLength: 0)
+                if assistant.canApply {
+                    Button { assistant.apply() } label: {
+                        HStack(spacing: 7) { Text("⌥"); Text("↵") }
+                            .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(Design.cyan).padding(.horizontal, 12).frame(height: 30)
+                            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.cyan.opacity(0.35), lineWidth: 0.7))
+                    }.accessibilityLabel("Apply assistant result").help("Replace entire draft · Option Return")
+                }
+            }.buttonStyle(PointerButtonStyle()).font(.system(size: 11)).foregroundStyle(.white.opacity(0.55))
+        }.padding(.bottom, 10).foregroundStyle(.white)
+    }
+    private var result: Text {
+        if assistant.tool == .format && assistant.error.isEmpty {
+            return Transliterator.runs(in: assistant.input).reduce(Text("")) {
+                $0 + Text($1.text).foregroundColor($1.changed ? Design.orange : .white)
+            }
+        }
+        return Text(assistant.previewText).foregroundColor(Design.orange)
+    }
+}
+
 struct AssistantNotchView: View {
     @ObservedObject var assistant: AssistantModel
     @Namespace private var tabSelection

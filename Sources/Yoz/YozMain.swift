@@ -198,7 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let assistant = model.assistant
             assistant.automaticTranslationAllowed = { true }
             assistant.defaultTool = .format
-            let sample = "O'zbekcha yozish oson.\n\nYangi g'oyalar va yaxshi jamoa."
+            let sample = CommandLine.arguments.contains("--short-sample") ? "shahar" : "O'zbekcha yozish oson.\n\nYangi g'oyalar va yaxshi jamoa."
             assistant.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: (sample as NSString).length, length: 0), text: sample))
             assistant.sourceName = "SAMPLE DRAFT"
             Task { @MainActor [weak self] in
@@ -310,14 +310,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func hoverNotch(_ inside: Bool) {
         hoverWork?.cancel()
         guard !previewing, model.enabled, model.accessibilityGranted else { return }
-        if inside && !model.assistant.visible {
-            let work = DispatchWorkItem { [weak self] in self?.model.assistant.open() }
+        if inside && (!model.assistant.visible || model.assistant.compactResult) {
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                if self.model.assistant.visible { self.model.assistant.browse(true) }
+                else { self.model.assistant.open() }
+            }
             hoverWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
-        } else if !inside && model.assistant.visible && !model.assistant.resultPresented && !model.assistant.details && !model.assistant.editing {
+        } else if !inside && model.assistant.visible && !model.assistant.details && !model.assistant.editing {
             let work = DispatchWorkItem { [weak self] in
-                guard let self, !self.model.assistant.resultPresented else { return }
-                self.model.assistant.close()
+                guard let self else { return }
+                if self.model.assistant.resultPresented { self.model.assistant.browse(false) }
+                else { self.model.assistant.close() }
             }
             hoverWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.55, execute: work)
@@ -334,11 +339,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
         let screen = activeScreen(), metrics = notchMetrics(screen)
-        let width = min(screen.frame.width - 32, assistant.details ? 670 : 510)
-        let bodyHeight: CGFloat = assistant.details ? min(510, screen.visibleFrame.height - 95) : assistant.tool == .translate ? 235 : 295
+        let layout = NotchLayout(notchWidth: metrics.width)
+        let compact = assistant.compactResult
+        let width = min(screen.frame.width - 32, compact ? layout.resultWidth : assistant.details ? 670 : 510)
+        let contentWidth = compact ? layout.contentWidth : width - 70
+        let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = 2
+        let measured = (String(assistant.previewText.prefix(2000)) as NSString).boundingRect(
+            with: NSSize(width: contentWidth, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: NSFont(name: "Figtree-Medium", size: 14) ?? NSFont.systemFont(ofSize: 14), .paragraphStyle: paragraph])
+        let bodyHeight: CGFloat = compact ? 70 + min(126, max(22, ceil(measured.height)))
+            : assistant.details ? min(510, screen.visibleFrame.height - 95) : assistant.tool == .translate ? 235 : 295
         let frame = NotchGeometry.expandedFrame(screen: screen.frame, width: width, contentHeight: bodyHeight + 7,
             safeTop: metrics.safeTop, centerX: metrics.center, backingScale: screen.backingScaleFactor)
-        notch.contentWidth = width - 70; notch.contentHeight = bodyHeight
+        notch.contentWidth = contentWidth; notch.contentHeight = bodyHeight
         notch.safeTop = metrics.safeTop + 1 / screen.backingScaleFactor
         notch.notchWidth = metrics.width
         notch.typing = assistant.anyBusy || (assistant.followsDraft && model.isTyping)

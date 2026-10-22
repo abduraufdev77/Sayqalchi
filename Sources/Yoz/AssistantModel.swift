@@ -84,6 +84,7 @@ private struct PreparedResult {
 final class AssistantModel: ObservableObject {
     @Published var visible = false
     @Published private(set) var resultPresented = false
+    @Published private(set) var browsing = false
     @Published var details = false
     @Published var editing = false
     @Published var tool: WritingTool = .format
@@ -155,9 +156,17 @@ final class AssistantModel: ObservableObject {
     }
     var canApply: Bool { !waitingForPause && !busy && !output.isEmpty && output != input && context != nil && !editing && preparedForInput == input }
     var statistics: DocumentStatistics { DocumentStatistics(input) }
+    var compactResult: Bool { resultPresented && !browsing && !details && !editing }
+    var previewText: String {
+        if !error.isEmpty { return error }
+        if let entry { return entry.word + "\n" + entry.preview.enumerated().map { "\($0.offset + 1). \($0.element.definition)" }.joined(separator: "\n") }
+        return output
+    }
+    func browse(_ expanded: Bool) { browsing = expanded; resize?() }
     private var requestedTools: Set<WritingTool> { visible ? [tool] : [defaultTool] }
 
     func open(capture: Bool = true) {
+        browsing = true
         app?.assistantActive = true; visible = true
         if capture, !editing {
             if let draft = app?.monitor?.captureDraft(), sameDraft(draft), preparedForInput == draft.text {
@@ -184,7 +193,7 @@ final class AssistantModel: ObservableObject {
         preparedForInput = nil; waitingForPause = false; appliedNotice = ""
     }
     func close() {
-        dismissedInput = input; resultPresented = false
+        dismissedInput = input; resultPresented = false; browsing = false
         if editing { resetResult(); input = ""; context = nil }
         visible = false; details = false; editing = false
         tool = defaultTool; cancelUnneededWork(); prepareRequestedTools()
@@ -275,12 +284,13 @@ final class AssistantModel: ObservableObject {
         let hasResult = result.entry != nil || !result.error.isEmpty
             || (!result.text.isEmpty && (tool != .format || result.text != input))
         guard hasResult, !resultPresented else { return }
+        if !visible { browsing = false }
         resultPresented = true; visible = true; app?.assistantActive = true
         resize?()
     }
     private func collapseAutomaticResult() {
         guard resultPresented else { return }
-        resultPresented = false; visible = false; details = false
+        resultPresented = false; visible = false; details = false; browsing = false
         tool = defaultTool; app?.assistantActive = false; resize?()
     }
     private func cancelWork(for tool: WritingTool) {

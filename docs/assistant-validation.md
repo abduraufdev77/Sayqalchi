@@ -150,3 +150,19 @@ the two-paragraph result and combined Option Return accept button. The latest
 DMG checksum and strict app signature checks pass. The UI automation could edit
 the separate local editor but could not bring it to the foreground, so the
 physical cross-app Option Return action was not revalidated in this check.
+
+
+## Compact automatic results (build 13)
+
+Automatic results use the original band width plus 22 points (339 points on the
+185-point notch), with content-driven height capped for long drafts. The compact
+view shows the result, Copy, More, dismiss, and the combined Option Return button.
+It omits the toolbar and fixed-height empty area. Hover expands the full tools;
+leaving smoothly returns to the pinned compact result. More opens the large detail
+view. Formatting retains orange changed-letter highlights; translations are orange.
+All 52 tests pass, including compact/hover/detail transitions and acceptance state.
+
+Native short-result captures confirm a 339 × 132 point window for both Format
+and Translate, with 269 points of content width. The sample `shahar` produced
+`şahar` and `city`; the accept button remains available without hover. Strict
+signature and DMG checksum verification passed.

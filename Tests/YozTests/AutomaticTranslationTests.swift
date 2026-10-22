@@ -231,6 +231,19 @@ final class AutomaticTranslationTests: XCTestCase {
         model.stopWork(); model.close()
     }
 
+    func testAutomaticResultStartsCompactAndHoverOrDetailsCanExpandIt() {
+        let model = assistant(); model.defaultTool = .format; model.close()
+        model.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: 6, length: 0), text: "shahar"))
+        XCTAssertTrue(model.compactResult); XCTAssertTrue(model.canApply)
+        XCTAssertEqual(model.previewText, "şahar")
+        model.browse(true); XCTAssertFalse(model.compactResult)
+        model.browse(false); XCTAssertTrue(model.compactResult)
+        model.details = true; XCTAssertFalse(model.compactResult)
+        model.details = false; XCTAssertTrue(model.compactResult)
+        model.draftWillChange(); XCTAssertFalse(model.visible); XCTAssertFalse(model.compactResult)
+        model.stopWork(); model.close()
+    }
+
     func testUnchangedFormatterTextDoesNotOpenEmptySuggestion() {
         let model = assistant(); model.defaultTool = .format; model.close()
         model.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: 5, length: 0), text: "Salom"))

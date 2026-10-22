@@ -86,8 +86,19 @@ final class AssistantModel: ObservableObject {
     @Published var details = false
     @Published var editing = false
     @Published var tool: WritingTool = .format
+    @Published var defaultTool: WritingTool {
+        didSet {
+            preferences.set(defaultTool.rawValue, forKey: "defaultWritingTool")
+            if !visible { tool = defaultTool; cancelUnneededWork(); prepareRequestedTools() }
+        }
+    }
     @Published var direction: TranslationDirection = .uzEn {
-        didSet { if oldValue != direction, automaticEnabled, preparedForInput == input { prepareTranslation() } }
+        didSet {
+            if oldValue != direction {
+                cancelWork(for: .translate); prepared[.translate] = nil
+                if automaticEnabled, preparedForInput == input, requestedTools.contains(.translate) { prepareTranslation() }
+            }
+        }
     }
     @Published var input = "" {
         didSet { if oldValue != input { resetResult(); if editing { scheduleManualPreparation() } } }
@@ -100,6 +111,7 @@ final class AssistantModel: ObservableObject {
     let settings: ServiceSettings
     private let pauseDelay: TimeInterval
     private let session: URLSession
+    private let preferences: UserDefaults
     private var pendingPreparation: DispatchWorkItem?
     private var tasks: [WritingTool: Task<Void, Never>] = [:]
     private var generation = UUID()
@@ -115,8 +127,11 @@ final class AssistantModel: ObservableObject {
     var requestEditing: (() -> Void)?
     var returnToEditor: ((TypingMonitor.Input, String) -> Void)?
 
-    init(settings: ServiceSettings = ServiceSettings(), session: URLSession? = nil, pauseDelay: TimeInterval = 0.65) {
+    init(settings: ServiceSettings = ServiceSettings(), session: URLSession? = nil, pauseDelay: TimeInterval = 0.65, preferences: UserDefaults = .standard) {
         self.settings = settings; self.pauseDelay = pauseDelay
+        self.preferences = preferences
+        let preferred = preferences.string(forKey: "defaultWritingTool").flatMap(WritingTool.init(rawValue:)) ?? .format
+        defaultTool = preferred; tool = preferred
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieStorage = nil; config.urlCache = nil
         config.timeoutIntervalForRequest = 90; config.timeoutIntervalForResource = 120
@@ -138,6 +153,7 @@ final class AssistantModel: ObservableObject {
     }
     var canApply: Bool { !waitingForPause && !busy && !output.isEmpty && output != input && context != nil && !editing && preparedForInput == input }
     var statistics: DocumentStatistics { DocumentStatistics(input) }
+    private var requestedTools: Set<WritingTool> { visible ? [tool] : [defaultTool] }
 
     func open(capture: Bool = true) {
         app?.assistantActive = true; visible = true
@@ -147,6 +163,7 @@ final class AssistantModel: ObservableObject {
                 updateDictionaryQuery(for: draft)
             } else { app?.monitor?.assistantModeChanged() }
         }
+        prepareRequestedTools()
         resize?()
     }
     func refresh() {
@@ -154,10 +171,9 @@ final class AssistantModel: ObservableObject {
         else { resetResult(); context = nil; app?.monitor?.assistantModeChanged() }
     }
     func choose(_ tool: WritingTool) {
-        guard self.tool != tool else { return }
-        // Tabs are views of one prepared snapshot; changing tabs never cancels
-        // another tool or discards its completed result.
+        guard self.tool != tool else { prepareRequestedTools(); return }
         self.tool = tool; details = false; appliedNotice = ""; resize?()
+        cancelUnneededWork(); prepareRequestedTools()
     }
     func resetResult() {
         pendingPreparation?.cancel(); pendingPreparation = nil
@@ -168,6 +184,7 @@ final class AssistantModel: ObservableObject {
     func close() {
         if editing { resetResult(); input = ""; context = nil }
         visible = false; details = false; editing = false
+        tool = defaultTool; cancelUnneededWork(); prepareRequestedTools()
         app?.assistantActive = false; resize?()
     }
     func edit() {
@@ -209,14 +226,13 @@ final class AssistantModel: ObservableObject {
         guard !draft.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { clearLiveDraft(); return }
         if preparedForInput == draft.text {
             context = draft; waitingForPause = false; updateDictionaryQuery(for: draft)
-            if prepared[.translate] == nil { prepareTranslation() }
-            if prepared[.dictionary] == nil { prepareDictionary() }
+            prepareRequestedTools()
             return
         }
         resetResult(); context = draft; input = draft.text
         sourceName = NSRunningApplication(processIdentifier: draft.pid)?.localizedName ?? "Current draft"
         scope = "Entire draft"
-        prepareAll()
+        prepareSnapshot()
     }
     func clearLiveDraft() {
         guard followsDraft else { return }
@@ -227,18 +243,37 @@ final class AssistantModel: ObservableObject {
     func stopWork() { resetResult(); context = nil }
     /// Used for manual input and diagnostics; normal drafts arrive after the
     /// monitor's pause detector and are processed whether the widget is open.
-    func run() { resetResult(); prepareAll() }
-    private func prepareAll() {
+    func run() { resetResult(); prepareSnapshot() }
+    private func prepareSnapshot() {
         guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         preparedForInput = input; waitingForPause = false
-        prepared[.format] = PreparedResult(text: Transliterator.convert(input))
-        prepared[.document] = PreparedResult(text: DocumentCleanup.clean(input))
         dictionaryQuery = DictionaryService.query(in: input, selection: context.map { NSRange(location: $0.caret.location, length: $0.caret.length) })
-        if automaticEnabled { prepareTranslation(); prepareDictionary() }
+        prepareRequestedTools()
+    }
+    private func prepareRequestedTools() {
+        guard preparedForInput == input, !waitingForPause, !input.isEmpty else { return }
+        for tool in requestedTools where prepared[tool] == nil {
+            switch tool {
+            case .format: prepared[tool] = PreparedResult(text: Transliterator.convert(input))
+            case .document: prepared[tool] = PreparedResult(text: DocumentCleanup.clean(input))
+            case .translate: if automaticEnabled { prepareTranslation() }
+            case .dictionary: if automaticEnabled { prepareDictionary() }
+            }
+        }
+    }
+    private func cancelWork(for tool: WritingTool) {
+        tasks.removeValue(forKey: tool)?.cancel(); requestIDs[tool] = nil
+        if prepared[tool]?.busy == true { prepared[tool] = nil }
+    }
+    private func cancelUnneededWork() {
+        for tool in WritingTool.allCases where !requestedTools.contains(tool) { cancelWork(for: tool) }
     }
     private func updateDictionaryQuery(for draft: TypingMonitor.Input) {
         let query = DictionaryService.query(in: draft.text, selection: NSRange(location: draft.caret.location, length: draft.caret.length))
-        if query != dictionaryQuery { dictionaryQuery = query; if automaticEnabled { prepareDictionary() } }
+        if query != dictionaryQuery {
+            dictionaryQuery = query; cancelWork(for: .dictionary); prepared[.dictionary] = nil
+            if automaticEnabled, requestedTools.contains(.dictionary) { prepareDictionary() }
+        }
     }
     private func begin(_ tool: WritingTool) -> (UUID, UUID) {
         tasks[tool]?.cancel()

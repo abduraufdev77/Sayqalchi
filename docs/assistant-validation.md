@@ -103,3 +103,30 @@ removed. Explicit copy and replacement controls remain.
 45 automated tests pass. New tests cover manual debounce, all-tab preparation,
 latest-language selection, cancellation, stale-result protection, pause handling,
 caret-only reuse, cached tabs, applied-text suppression, and dictionary query scope.
+
+
+## Default service and permission recovery (build 11)
+
+Supersedes build 10's all-tab preparation: only the configured default runs with
+the notch collapsed (Format initially). Opening another tab runs only that tool;
+leaving cancels its unfinished request. Completed results remain cached for the
+unchanged draft. The persistent default is configured in the main Settings page,
+with green badges; the notch's active tab is also green.
+
+Permission recovery runs independently of suggestion polling, including while
+paused. A newly granted permission installs the event tap without restarting;
+disabled taps are re-enabled and invalid taps are recreated. Right Shift uses
+its device-specific modifier bit and ignores Left Shift and modifier chords.
+The build script prefers an installed Developer ID or Apple Development signing
+identity so the designated requirement survives rebuilds. Ad-hoc signing remains
+an explicit fallback when no identity exists. Moving from an older ad-hoc build
+requires approving the newly signed app once through macOS Settings.
+
+
+Validation: 48 automated tests pass, including no network requests with Format
+as default, on-demand requests, cancellation when leaving a service, persistent
+default selection, cache reuse, and physical-key flag/chord handling. The running
+certificate-signed app reports Ready to write and Connected · shortcut active.
+The default Format badge was visually checked in Settings. Two rebuilt binaries
+have identical certificate-based designated requirements. The DMG checksum,
+image integrity, and strict bundle signature verification pass.

@@ -8,6 +8,7 @@ private final class AutomaticTranslationProtocol: URLProtocol {
     private static var stored: [URLRequest] = []
     static var responseDelay: TimeInterval = 0
     private var stopped = false
+    static var allRequests: [URLRequest] { lock.lock(); defer { lock.unlock() }; return stored }
     static var requests: [URLRequest] { lock.lock(); defer { lock.unlock() }; return stored.filter { $0.url?.path == "/api/translate/text" } }
     static func reset() { lock.lock(); stored = []; responseDelay = 0; lock.unlock() }
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -46,8 +47,10 @@ final class AutomaticTranslationTests: XCTestCase {
         let config = URLSessionConfiguration.ephemeral; config.protocolClasses = [AutomaticTranslationProtocol.self]
         let settings = ServiceSettings(loadStoredCredentials: false)
         settings.url = "https://translation.fixture.example"; settings.token = "fixture-only"
-        let assistant = AssistantModel(settings: settings, session: URLSession(configuration: config), pauseDelay: 0.06)
+        let preferences = UserDefaults(suiteName: "YozTests." + UUID().uuidString)!
+        let assistant = AssistantModel(settings: settings, session: URLSession(configuration: config), pauseDelay: 0.06, preferences: preferences)
         assistant.automaticTranslationAllowed = { true }
+        assistant.defaultTool = .translate
         assistant.visible = true; assistant.choose(.translate)
         return assistant
     }
@@ -132,19 +135,69 @@ final class AutomaticTranslationTests: XCTestCase {
         model.close()
     }
 
-    func testAllTabsArePreparedAndSwitchingKeepsCachedResults() async throws {
-        let model = assistant(); model.choose(.format)
+    func testFormatterDefaultDoesNotCallUnopenedServices() async throws {
+        let model = assistant(); model.defaultTool = .format; model.close()
         let element = AXUIElementCreateApplication(getpid())
-        model.receiveStableDraft(.init(element: element, pid: getpid(), caret: CFRange(location: 5, length: 0), text: "jamoa"))
+        let draft = TypingMonitor.Input(element: element, pid: getpid(), caret: CFRange(location: 5, length: 0), text: "jamoa")
+        model.receiveStableDraft(draft)
         XCTAssertEqual(model.output, "jamoa")
-        try await waitUntil { !model.anyBusy }
-        model.choose(.translate); XCTAssertEqual(model.output, "Translated: jamoa")
-        model.choose(.dictionary); XCTAssertEqual(model.entry?.word, "jamoa")
-        model.choose(.document); XCTAssertEqual(model.output, "jamoa"); XCTAssertEqual(model.statistics.words, 1)
-        model.close(); model.open(capture: false); model.choose(.translate)
+        try await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertTrue(AutomaticTranslationProtocol.allRequests.isEmpty)
+        model.open(capture: false); model.choose(.translate)
+        try await waitUntil { !model.busy && !model.output.isEmpty }
+        XCTAssertEqual(model.output, "Translated: jamoa")
+        XCTAssertEqual(AutomaticTranslationProtocol.allRequests.count, 1)
+        model.choose(.format); model.choose(.translate)
         XCTAssertEqual(model.output, "Translated: jamoa")
         XCTAssertEqual(AutomaticTranslationProtocol.requests.count, 1)
+        model.choose(.dictionary)
+        try await waitUntil { model.entry != nil }
+        XCTAssertEqual(AutomaticTranslationProtocol.allRequests.count, 2)
+        model.choose(.document); XCTAssertEqual(model.output, "jamoa")
+        model.close(); XCTAssertEqual(model.tool, .format)
+        model.draftWillChange()
+        model.receiveStableDraft(.init(element: element, pid: getpid(), caret: CFRange(location: 4, length: 0), text: "Yangi matn"))
+        try await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(AutomaticTranslationProtocol.allRequests.count, 2)
+        model.stopWork()
+    }
+
+    func testLeavingTranslationTabCancelsWorkAndDoesNotRestartItHidden() async throws {
+        let model = assistant(); model.defaultTool = .format
+        AutomaticTranslationProtocol.responseDelay = 0.2
+        let element = AXUIElementCreateApplication(getpid())
+        model.receiveStableDraft(.init(element: element, pid: getpid(), caret: CFRange(location: 5, length: 0), text: "jamoa"))
+        try await waitUntil { AutomaticTranslationProtocol.requests.count == 1 }
+        model.choose(.format)
+        XCTAssertFalse(model.anyBusy)
+        model.close()
+        try await Task.sleep(nanoseconds: 250_000_000)
+        XCTAssertEqual(model.output, "jamoa")
+        XCTAssertEqual(AutomaticTranslationProtocol.allRequests.count, 1)
+        model.open(capture: false); model.choose(.translate)
+        try await waitUntil { !model.busy && !model.output.isEmpty }
+        XCTAssertEqual(AutomaticTranslationProtocol.requests.count, 2)
         model.stopWork(); model.close()
+    }
+
+    func testDefaultServicePersistsAndOnlyThatServiceRunsWhenCollapsed() async throws {
+        let model = assistant(); model.defaultTool = .dictionary; model.close()
+        let element = AXUIElementCreateApplication(getpid())
+        model.receiveStableDraft(.init(element: element, pid: getpid(), caret: CFRange(location: 5, length: 0), text: "jamoa"))
+        try await waitUntil { model.entry != nil }
+        XCTAssertTrue(AutomaticTranslationProtocol.requests.isEmpty)
+        XCTAssertEqual(AutomaticTranslationProtocol.allRequests.count, 1)
+        XCTAssertEqual(model.tool, .dictionary)
+        model.choose(.format); model.close()
+        XCTAssertEqual(model.defaultTool, .dictionary)
+        XCTAssertEqual(model.tool, .dictionary)
+        model.stopWork()
+        let prefs = UserDefaults(suiteName: "YozTests." + UUID().uuidString)!
+        let first = AssistantModel(settings: ServiceSettings(loadStoredCredentials: false), preferences: prefs)
+        first.defaultTool = .document
+        let second = AssistantModel(settings: ServiceSettings(loadStoredCredentials: false), preferences: prefs)
+        XCTAssertEqual(second.defaultTool, .document)
+        XCTAssertEqual(second.tool, .document)
     }
 
     func testCaretMovementKeepsPreparedTranslationWithoutResendingDraft() async throws {

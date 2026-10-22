@@ -29,19 +29,19 @@ A native assistant that grows out of your Mac’s notch.
 </div>
 
 Hover over Ö to reveal a rounded tool strip. The logo and waveform keep their
-positions while the black island expands below the camera. Each typing pause prepares all four tools. Choose a tab, review
-its cached result, and copy it or replace the captured draft with **⌥ ↵**.
+positions while the black island expands below the camera. Only your default service runs after a typing pause. Its tab is electric green;
+open another tab to run that service on demand, review the result, and copy it or replace the captured draft with **⌥ ↵**.
 
 | Tool | What it does | Processing |
 | --- | --- | --- |
 | **Format** | Convert the complete draft to the new Uzbek alphabet, with orange inline changes. | Local |
-| **Translate** | Uzbek ↔ English, Uzbek ↔ Russian, Uzbek Latin ↔ Cyrillic. Prepare a result from your configured translation service after a typing pause. | Automatic after pause |
-| **Izohchi** | Look up a selected word or short phrase. Two meanings and one example per meaning in the preview; **More** opens all meanings in a larger notch. | Izoh.uz, after pause |
+| **Translate** | Uzbek ↔ English, Uzbek ↔ Russian, Uzbek Latin ↔ Cyrillic. Prepare a result from your configured translation service after a typing pause. | Default service or on demand |
+| **Izohchi** | Look up a selected word or short phrase. Two meanings and one example per meaning in the preview; **More** opens all meanings in a larger notch. | Izoh.uz, when selected |
 | **Document** | Count words, characters and text lines, estimate reading time, and preview spacing cleanup while keeping paragraph breaks and indentation. | Local |
 
 Use the pencil to enter or paste text directly. Manual input results can be copied;
 replacing another app’s draft requires a fresh captured editor. **Refresh** reads
-that editor again. While Yoz is enabled, a typing pause prepares all four tabs. Translation sends the whole draft to your configured service; Izohchi sends the selection or word at the cursor. Hover to view cached results, and switch tabs without reprocessing. Pause Yoz to stop automatic requests.
+that editor again. Choose **Settings → Default service** in the main app. Format is the initial default and makes no network requests. Other services run only when their tab is open; switching away cancels unfinished work. Completed results are cached for the unchanged draft. Translation sends the whole draft to your configured service; Izohchi sends the selection or word at the cursor. Pause Yoz to stop processing.
 
 ### Connect your translation service
 
@@ -143,7 +143,7 @@ New installations start **paused**, with automatic replacement **off**. Updates
 preserve your preferences. Closing the main window keeps Yoz available in the
 menu bar.
 
-Current builds are signed ad hoc for local development and are not notarized.
+The published 0.4.2 build is signed ad hoc and is not notarized. New local builds prefer an installed Apple signing certificate so Accessibility approval survives rebuilding.
 macOS may require **System Settings → Privacy & Security → Open Anyway**. Developer ID signing and notarization remain future distribution work.
 
 ### Package an installer
@@ -156,7 +156,7 @@ This creates `dist/Yoz-0.5.0-arm64.dmg` and `dist/SHA256SUMS.txt`. The script re
 the version from `packaging/Info.plist`.
 
 To update, quit Yoz, replace the installed app, and reopen it. A rebuilt or moved
-app may need its Accessibility grant renewed.
+app may need its Accessibility grant renewed once when moving from ad-hoc signing to a certificate. Permission checks and shortcut recovery continue while Yoz is paused.
 
 ## Shortcuts
 
@@ -201,6 +201,7 @@ can also change—enable Yoz when you want the Uzbek conversion.
 | Control | Default | Behavior |
 | --- | --- | --- |
 | Suggest while I type | Off on a new installation | Enables draft detection and the notch. Updates keep your existing preference. |
+| Default service | Format | Runs after a pause; other tools run when opened. |
 | Apply automatically after a pause | Off | Replaces the entire editable field after the pause, without manual acceptance. |
 | App exclusions | No custom exclusions | Stops suggestions in the apps you choose. Built-in protected-app exclusions still apply. |
 | Live detection | Status display | Explains whether Yoz is waiting, paused, ready, or unable to read the editor. |

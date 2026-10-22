@@ -27,7 +27,9 @@ even with a paragraph selected.
 The entire field is supported up to 200,000 UTF-16 units. Longer fields are not
 silently truncated: use the Playground for a smaller passage.
 
-This preview is signed ad hoc and is not Apple-notarized.
+This preview is locally signed and is not Apple-notarized. A certificate-signed
+build keeps its identity across updates. If you previously approved an ad-hoc
+build, remove that old Yoz entry in Accessibility, then add this Yoz app once.
 Do not disable Gatekeeper. If macOS blocks it, use the normal Privacy & Security
 Open Anyway flow for your own local build, or build from source on this Mac.
 
@@ -51,7 +53,8 @@ Hover over the notch to open Format, Translate, Izohchi and Document tools.
 The pencil opens manual input. Refresh captures the active editable draft again.
 Translate supports Uzbek-English, Uzbek-Russian and Uzbek Latin-Cyrillic in both
  directions. Configure your HTTPS service URL and API key in Settings, or import
-.env. Keys are saved in Keychain. After a typing pause, all tabs prepare results automatically; hover to review them.
+.env. Keys are saved in Keychain. Choose Settings > Default service. Only that tool runs after a pause; other tools
+run when you open their tab. Format is the default and uses no network.
 HTTP requires an explicit opt-in and exposes your key/text to the network.
 Izohchi uses free public Izoh.uz entries. Select a word or enter a short phrase,
 then pause and hover. The preview shows two meanings, one example each; More opens

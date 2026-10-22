@@ -8,12 +8,13 @@ final class TypingMonitor {
     private var pendingPoll: DispatchWorkItem?
     private var pollDeadline = TimeInterval.greatestFiniteMagnitude
     private var watchdog: DispatchWorkItem?
+    private var permissionWatchdog: DispatchWorkItem?
     private var workspaceTokens: [NSObjectProtocol] = []
     private var observer: AXObserver?
     private var observedPID: pid_t = 0
     private var observedEditor: AXUIElement?
     private var stableInput: String?
-    private var languagePress = DoublePress()
+    private var languagePress = RightShiftDoublePress()
     private var tap: CFMachPort?
     private var tapSource: CFRunLoopSource?
     private var snapshot: Snapshot?
@@ -47,19 +48,22 @@ final class TypingMonitor {
         let center = NSWorkspace.shared.notificationCenter
         workspaceTokens.append(center.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
+            self.refreshPermissions()
             self.clear()
             if self.model?.enabled == true { self.requestPoll(after: 0.08) }
         })
         workspaceTokens.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.suspend(); self?.clear()
+            self?.permissionWatchdog?.cancel(); self?.suspend(); self?.clear()
         })
         workspaceTokens.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.enabledChanged()
+            self?.armPermissionWatchdog()
         })
-        DispatchQueue.main.async { [weak self] in self?.poll(); self?.armWatchdog() }
+        DispatchQueue.main.async { [weak self] in self?.poll(); self?.armWatchdog(); self?.armPermissionWatchdog() }
     }
     deinit {
         restorePasteboard?()
+        permissionWatchdog?.cancel()
         suspend()
         workspaceTokens.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         if let observer { CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes) }
@@ -70,10 +74,42 @@ final class TypingMonitor {
         watchdog?.cancel(); watchdog = nil
     }
     func enabledChanged() {
+        refreshPermissions()
         if model?.enabled != true { model?.assistant.stopWork() }
         suspend(); clear()
         if model?.enabled == true { requestPoll(after: 0); armWatchdog() }
         else { status("Suggestions paused · double-press Right Shift or double-click ö to enable") }
+    }
+    /// Permission and shortcut recovery must continue even while suggestions
+    /// are paused; otherwise a paused app can never hear its enable shortcut.
+    func refreshPermissions() {
+        guard let model else { return }
+        let trusted = AXIsProcessTrusted()
+        if model.accessibilityGranted != trusted { model.accessibilityGranted = trusted }
+        if !trusted {
+            if tap != nil { removeShortcut() }
+            if model.shortcutReady { model.shortcutReady = false }
+        } else if tap == nil || tap.map({ !CFMachPortIsValid($0) }) == true {
+            if Date().timeIntervalSince(lastTapAttempt) > 2 {
+                removeShortcut(); lastTapAttempt = Date(); installShortcut()
+            }
+        } else if let tap {
+            if !CGEvent.tapIsEnabled(tap: tap) { CGEvent.tapEnable(tap: tap, enable: true) }
+            let ready = CGEvent.tapIsEnabled(tap: tap)
+            if model.shortcutReady != ready { model.shortcutReady = ready }
+        }
+    }
+    private func removeShortcut() {
+        if let tapSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), tapSource, .commonModes) }
+        if let tap { CFMachPortInvalidate(tap) }
+        tap = nil; tapSource = nil; languagePress = RightShiftDoublePress()
+    }
+    private func armPermissionWatchdog() {
+        permissionWatchdog?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.refreshPermissions(); self?.armPermissionWatchdog() }
+        permissionWatchdog = work
+        let delay: TimeInterval = model?.accessibilityGranted == true && model?.shortcutReady == true ? 10 : 3
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
     private func requestPoll(after delay: TimeInterval = 0.08) {
         guard model?.enabled == true else { return }
@@ -135,9 +171,8 @@ final class TypingMonitor {
 
     func poll() {
         guard let model else { return }
-        let trusted = AXIsProcessTrusted()
-        if model.accessibilityGranted != trusted { model.accessibilityGranted = trusted }
-        if trusted, tap == nil, Date().timeIntervalSince(lastTapAttempt) > 3 { lastTapAttempt = Date(); installShortcut() }
+        refreshPermissions()
+        let trusted = model.accessibilityGranted
         guard model.enabled else { status("Suggestions paused"); clear(); return }
         guard trusted else { status("macOS has not granted this build Accessibility access"); clear(); return }
         guard !applying else { return }
@@ -418,19 +453,16 @@ final class TypingMonitor {
             guard let info else { return Unmanaged.passUnretained(event) }
             let monitor = Unmanaged<TypingMonitor>.fromOpaque(info).takeUnretainedValue()
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                monitor.languagePress = RightShiftDoublePress()
                 if let tap = monitor.tap { CGEvent.tapEnable(tap: tap, enable: true) }
                 return Unmanaged.passUnretained(event)
             }
             guard event.getIntegerValueField(.eventSourceUserData) != 0x595A else { return Unmanaged.passUnretained(event) }
             if type == .flagsChanged {
                 let key = event.getIntegerValueField(.keyboardEventKeycode)
-                let other = event.flags.intersection([.maskAlternate, .maskCommand, .maskControl, .maskSecondaryFn])
-                // NX_DEVICELSHIFTKEYMASK: skip chords with the left Shift held.
-                if key == 60 && other.isEmpty && event.flags.rawValue & 0x2 == 0 {
-                    if monitor.languagePress.update(pressed: event.flags.contains(.maskShift), now: ProcessInfo.processInfo.systemUptime) {
-                        DispatchQueue.main.async { monitor.model?.enabled.toggle() }
-                    }
-                } else { monitor.languagePress.cancel() }
+                if monitor.languagePress.flagsChanged(keyCode: key, flags: event.flags.rawValue, now: ProcessInfo.processInfo.systemUptime) {
+                    DispatchQueue.main.async { monitor.model?.enabled.toggle() }
+                }
                 return Unmanaged.passUnretained(event)
             }
             monitor.languagePress.cancel()
@@ -463,6 +495,6 @@ final class TypingMonitor {
             CFRunLoopAddSource(CFRunLoopGetMain(), tapSource, .commonModes)
             CGEvent.tapEnable(tap: tap, enable: true)
         }
-        model?.shortcutReady = tap != nil
+        model?.shortcutReady = tap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false
     }
 }

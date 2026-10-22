@@ -15,12 +15,11 @@ struct AssistantNotchView: View {
                         HStack(spacing: 6) {
                             Image(systemName: tool.icon)
                             if assistant.tool == tool { Text(tool.rawValue) }
-                        }.font(Design.font(11, .semibold)).foregroundStyle(assistant.tool == tool ? .white : .white.opacity(0.48))
+                        }.font(Design.font(11, .semibold)).foregroundStyle(assistant.tool == tool ? Design.ink : .white.opacity(0.48))
                             .padding(.horizontal, 13).frame(height: 30)
                             .background {
                                 if assistant.tool == tool {
-                                    Capsule().fill(.white.opacity(0.16))
-                                        .overlay(Capsule().strokeBorder(.white.opacity(0.13), lineWidth: 0.7))
+                                    Capsule().fill(Design.green)
                                         .matchedGeometryEffect(id: "tool-pill", in: tabSelection)
                                 }
                             }
@@ -134,12 +133,34 @@ struct AssistantNotchView: View {
     }
 }
 
+struct DefaultServiceSettingsView: View {
+    @ObservedObject var assistant: AssistantModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Text("Default service").font(Design.font(17, .medium))
+            Text("Runs after a typing pause. Other services run only when you open their tab.")
+                .font(Design.font(12)).foregroundStyle(Design.muted)
+            HStack(spacing: 8) {
+                ForEach(WritingTool.allCases) { tool in
+                    Button { withAnimation(.easeInOut(duration: 0.2)) { assistant.defaultTool = tool } } label: {
+                        Label(tool.rawValue, systemImage: tool.icon)
+                            .font(Design.font(12, .semibold)).padding(.horizontal, 13).frame(height: 36)
+                            .foregroundStyle(assistant.defaultTool == tool ? Design.ink : Design.muted)
+                            .background(assistant.defaultTool == tool ? Design.green : Design.paper, in: Capsule())
+                    }.buttonStyle(PointerButtonStyle()).accessibilityAddTraits(assistant.defaultTool == tool ? .isSelected : [])
+                }
+            }
+        }.padding(22).frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white, in: RoundedRectangle(cornerRadius: 15))
+    }
+}
+
 struct TranslationSettingsView: View {
     @ObservedObject var settings: ServiceSettings
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             Label("Translation service", systemImage: "globe").font(Design.font(17, .medium))
-            Text("While Yoz is enabled, a typing pause prepares all tabs: your whole draft goes to the translation service, and only the selected word or word at the cursor goes to Izoh.uz. Pause Yoz to stop. Format and Document run locally.")
+            Text("Only your default service runs after a pause. Other services run when you open their tab. Translation sends the whole draft to your configured service; Izohchi sends only the selected word or word at the cursor to Izoh.uz. Format and Document stay on your Mac.")
                 .font(Design.font(12)).foregroundStyle(Design.muted).lineSpacing(4)
             TextField("HTTPS service URL", text: $settings.url).textFieldStyle(.roundedBorder).accessibilityLabel("Translation service URL")
             Toggle("Allow unencrypted HTTP for this service", isOn: $settings.allowInsecureHTTP).font(Design.font(12))

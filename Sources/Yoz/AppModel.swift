@@ -30,11 +30,12 @@ final class AppModel: ObservableObject {
     var monitor: TypingMonitor?
     var openAssistant: (() -> Void)?
     var previewBar: (() -> Void)?
-    var status: String { !enabled ? "Paused" : accessibilityGranted ? "Ready to write" : "Setup needed" }
+    var status: String { !enabled ? "Paused" : accessibilityGranted ? "Ready to write" : "Accessibility needed" }
 
     func openPermissions() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         accessibilityGranted = AXIsProcessTrustedWithOptions(options)
+        monitor?.refreshPermissions()
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
     func copy(_ text: String) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string) }

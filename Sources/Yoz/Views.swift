@@ -51,7 +51,7 @@ struct RootView: View {
             Spacer()
             VStack(alignment: .leading, spacing: 11) {
                 HStack { Image(systemName: "lock.shield"); Text("Your writing, your choice").font(Design.font(11, .medium)) }
-                Text("Local formatting.\nOnline tools after a pause.").font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(4)
+                Text("Your default tool after a pause.\nOther tools when you choose.").font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(4)
             }.padding(.bottom, 23)
             Rectangle().fill(Design.line).frame(height: 1)
             HStack { Text("YOZ FOR MAC").tracking(1.5); Spacer(); Text("v0.5.0") }.font(Design.font(9, .medium)).foregroundStyle(Design.muted).padding(.top, 18)
@@ -217,6 +217,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
             SectionHeading(eyebrow: "Make it yours", title: "A flow that fits you.", subtitle: "Choose how Yoz suggests and where it stays quiet.")
+            DefaultServiceSettingsView(assistant: model.assistant)
             VStack(alignment: .leading, spacing: 8) {
                 HStack { Circle().fill(Design.green).frame(width: 6, height: 6); Text("Live detection").font(Design.font(14, .medium)); Spacer(); Text("0.65 s pause").font(Design.font(11)).foregroundStyle(Design.muted) }
                 Text(model.liveStatus).font(Design.font(12)).foregroundStyle(Design.muted).textSelection(.enabled)
@@ -265,7 +266,7 @@ struct SettingsView: View {
                 }
             }.padding(22).background(.white, in: RoundedRectangle(cornerRadius: 15))
             HStack {
-                VStack(alignment: .leading, spacing: 5) { Text("Accessibility").font(Design.font(15, .medium)); Text(model.accessibilityGranted ? (model.shortcutReady ? "Connected · shortcut active" : "Connected · restart Yoz to activate shortcut") : "Allow Yoz in Privacy & Security → Accessibility").font(Design.font(11)).foregroundStyle(Design.muted) }
+                VStack(alignment: .leading, spacing: 5) { Text("Accessibility").font(Design.font(15, .medium)); Text(model.accessibilityGranted ? (model.shortcutReady ? "Connected · shortcut active" : "Connected · reconnecting shortcut…") : "Allow Yoz in Privacy & Security → Accessibility").font(Design.font(11)).foregroundStyle(Design.muted) }
                 Spacer()
                 ActionButton(title: "Open settings", icon: "arrow.up.right") { model.openPermissions() }
             }

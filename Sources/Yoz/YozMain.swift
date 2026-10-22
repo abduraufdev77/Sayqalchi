@@ -210,6 +210,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 var report: [String: Any] = [:]
                 for tool in WritingTool.allCases {
                     assistant.choose(tool)
+                    for _ in 0..<1200 {
+                        if !assistant.anyBusy { break }
+                        try? await Task.sleep(nanoseconds: 100_000_000)
+                    }
                     report[tool.rawValue] = ["output": assistant.output, "error": assistant.error, "meanings": assistant.entry?.meanings.count ?? 0]
                     self.updateAssistant()
                     try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -525,6 +529,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         else { panel.orderOut(nil) }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showWindow(); model.monitor?.refreshPermissions(); return true
+    }
     private func capturePanel(to path: String) {
         guard let view = panel.contentView, let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: bitmap)

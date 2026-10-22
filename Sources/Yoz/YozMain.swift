@@ -237,8 +237,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     report["dictionaryExamplesPerPreview"] = entry.preview.map { $0.examples.count }
                 } catch { report["dictionaryError"] = error.localizedDescription }
                 do {
-                    let config = try self.model.assistant.settings.configuration()
-                    let text = try await TranslationService.translate("Salom, dunyo!", direction: .uzEn, configuration: config, session: .shared) { _ in }
+                    let settings = self.model.assistant.settings
+                    let text: String
+                    if settings.provider == .myMemory {
+                        text = try await PublicTranslationService.translate("Salom, dunyo!", direction: .uzEn, session: .shared) { _ in }
+                    } else {
+                        let config = try settings.configuration()
+                        text = try await TranslationService.translate("Salom, dunyo!", direction: .uzEn, configuration: config, session: .shared) { _ in }
+                    }
                     report["translationSucceeded"] = !text.isEmpty
                 } catch { report["translationSucceeded"] = false; report["translationErrorCode"] = (error as NSError).code }
                 if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {

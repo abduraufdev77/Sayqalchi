@@ -35,23 +35,46 @@ open another tab to run that service on demand. Review the result and copy it or
 | Tool | What it does | Processing |
 | --- | --- | --- |
 | **Format** | Convert the complete draft to the new Uzbek alphabet, with orange inline changes. | Local |
-| **Translate** | Uzbek ↔ English, Uzbek ↔ Russian, Uzbek Latin ↔ Cyrillic. Prepare a result from your configured translation service after a typing pause. | Default service or on demand |
+| **Translate** | Uzbek ↔ English, Uzbek ↔ Russian, Uzbek Latin ↔ Cyrillic. Use the public MyMemory provider without an account, or connect your own translation service. | Default service or on demand |
 | **Izohchi** | Look up a selected word or short phrase. Two meanings and one example per meaning in the preview; **More** opens all meanings in a larger notch. | Izoh.uz, when selected |
 | **Document** | Count words, characters and text lines, estimate reading time, and preview spacing cleanup while keeping paragraph breaks and indentation. | Local |
 
 Use the pencil to enter or paste text directly. Manual input results can be copied;
 replacing another app’s draft requires a fresh captured editor. **Refresh** reads
-that editor again. Choose **Settings → Default service** in the main app. Format is the initial default and makes no network requests. Other services run only when their tab is open; switching away cancels unfinished work. Completed results are cached for the unchanged draft. Translation sends the whole draft to your configured service; Izohchi sends the selection or word at the cursor. Pause Yoz to stop processing.
+that editor again. Choose **Settings → Default service** in the main app. Format is the initial default and makes no network requests. Other services run only when their tab is open; switching away cancels unfinished work. Completed results are cached for the unchanged draft. Translation sends the draft to the provider selected in Settings; Izohchi sends the selection or word at the cursor. Pause Yoz to stop processing.
 
-### Connect your translation service
+### Translation without setup
 
-Open **Settings → Translation service** and enter the base URL and API key, or
-import a local `.env` file using the shape in [`.env.example`](.env.example).
-The key is stored in macOS Keychain and is never shipped in the binary.
+New installations use **MyMemory · free** in **Settings → Translation service**.
+No URL, login or API key is needed. The public API supports Uzbek ↔ English and
+Uzbek ↔ Russian. Uzbek Latin ↔ Cyrillic runs locally without using a network quota.
+Existing configured installations retain their custom service until changed.
+
+MyMemory permits anonymous use up to **5,000 characters per day**, subject to
+[provider limits](https://mymemory.translated.net/doc/usagelimits.php). Yoz splits
+long paragraphs into UTF-8-safe requests of at most 500 bytes and preserves all
+paragraph separators. Drafts above 5,000 characters are rejected without truncation;
+quota failures never become partial, usable results. It sends no API key, email,
+Google credentials, or private-service headers to MyMemory. Its
+[privacy policy](https://mymemory.translated.net/terms-and-conditions) permits
+long-term retention of submitted text and processing by external translation
+partners. Choose your own provider for private documents.
+
+Google's supported inline API requires a [billing-enabled Cloud project](https://docs.cloud.google.com/translate/docs/setup)
+and [API credentials](https://docs.cloud.google.com/translate/docs/authentication).
+A normal Google login alone does not provide a free app-wide API. Yoz does not
+scrape Google Translate or ship a shared Google key.
+
+### Connect your own translation service
+
+Select **Custom service** in **Settings → Translation service**, then enter the
+base URL and API key, or import a local `.env` using [`.env.example`](.env.example).
+Your key is stored in macOS Keychain. Fresh URL/key defaults are empty, and no
+credentials are shipped in the app.
 
 The compact widget shows prepared results with small language badges and no processing buttons or promotional headings.
 
-The client uses `POST /api/translate/text`, `X-API-Token`, JSON fields
+The custom service client uses `POST /api/translate/text`, `X-API-Token`, JSON fields
 `sourceLanguage`, `targetLanguage`, `text`, and an NDJSON stream of `delta` events
 ending in `done`. Choose source and target using the language badges; each badge opens a small language popover, and the middle arrow swaps the pair. Drafts over 20,000 Unicode scalars are rejected without truncation.
 Partial output cannot be copied or applied. Cancel, changing direction, and editing
@@ -216,9 +239,9 @@ without Accessibility permission.
 persistent typed-text history. It keeps the captured draft and result in memory
 while the assistant is open and clears them when you close it.
 
-- **Translation:** after a typing pause, Yoz sends the complete focused draft or manually entered text to your configured service. The provider’s own retention policy applies.
+- **Translation:** after a typing pause, Yoz sends the complete focused draft or manually entered text to the selected public or custom provider. MyMemory may retain submitted segments long term; the custom provider’s own retention policy applies.
 - **Izohchi:** each pause sends only the selected word/phrase or word at the cursor to Izoh.uz. A bounded temporary memory cache avoids repeat requests.
-- API keys live in Keychain; the URL and HTTP preference live in UserDefaults. `.env` files are ignored by Git and never bundled.
+- API keys live in Keychain; the URL and HTTP preference live in UserDefaults. `.env` files are ignored by Git and never bundled. Public translation has no credentials to store.
 - Network requests use an ephemeral session without persistent cookies or a disk cache. Credentials are not forwarded across origins during redirects.
 
 - It reads the **focused editable field** through macOS Accessibility, rather than collecting characters from keyboard events.
@@ -367,3 +390,18 @@ in [Sources/Yoz/Resources](Sources/Yoz/Resources).
 **Ö · Made for Uzbek writing on Mac.**
 
 </div>
+
+
+## Credential audit
+
+`scripts/audit-secrets.py` checks working source files and the built bundle for
+known local secrets/private endpoint values and common credential signatures.
+`--history` also scans every reachable Git blob. It reports paths, never matched
+values. Build packaging runs the audit before signing. Real `.env` variants are
+ignored; `.env.example` contains only a placeholder URL and an empty key.
+
+```sh
+python3 scripts/audit-secrets.py --history --bundle dist/Yoz.app
+```
+
+This is a targeted audit, not a guarantee against every possible secret format.

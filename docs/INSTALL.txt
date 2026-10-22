@@ -52,8 +52,10 @@ New in 0.5.0 preview:
 Hover over the notch to open Format, Translate, Izohchi and Document tools.
 The pencil opens manual input. Refresh captures the active editable draft again.
 Translate supports Uzbek-English, Uzbek-Russian and Uzbek Latin-Cyrillic in both
- directions. Configure your HTTPS service URL and API key in Settings, or import
-.env. Keys are saved in Keychain. Choose Settings > Default service. Only that tool runs after a pause; other tools
+ directions. New installs use MyMemory without a login, URL or key (5,000
+characters/day, provider limits apply). MyMemory may retain submitted text.
+Latin-Cyrillic conversion runs locally. In Settings > Translation service choose
+Custom service to use your own URL/key; keys are saved in Keychain. Choose Settings > Default service. Only that tool runs after a pause; other tools
 run when you open their tab. Format is the default and uses no network.
 HTTP requires an explicit opt-in and exposes your key/text to the network.
 Izohchi uses free public Izoh.uz entries. Select a word or enter a short phrase,

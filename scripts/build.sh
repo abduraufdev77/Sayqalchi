@@ -14,6 +14,7 @@ rm -rf "$YOZ_APP/Contents/Resources/Yoz_Yoz.bundle"
 cp -R "$YOZ_BUILD_DIR/Yoz_Yoz.bundle" "$YOZ_APP/Contents/Resources/"
 cp packaging/Info.plist "$YOZ_APP/Contents/Info.plist"
 if [[ -f packaging/Yoz.icns ]]; then cp packaging/Yoz.icns "$YOZ_APP/Contents/Resources/"; fi
+python3 scripts/audit-secrets.py --bundle "$YOZ_APP"
 # An ad-hoc signature pins Accessibility approval to the binary hash. Prefer
 # a certificate so successive builds retain the same designated requirement.
 # CI/distribution can select an identity explicitly with YOZ_SIGNING_IDENTITY.

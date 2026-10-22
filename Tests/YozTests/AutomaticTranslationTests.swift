@@ -7,10 +7,11 @@ private final class AutomaticTranslationProtocol: URLProtocol {
     private static let lock = NSLock()
     private static var stored: [URLRequest] = []
     static var responseDelay: TimeInterval = 0
+    static var publicQuota = false
     private var stopped = false
     static var allRequests: [URLRequest] { lock.lock(); defer { lock.unlock() }; return stored }
     static var requests: [URLRequest] { lock.lock(); defer { lock.unlock() }; return stored.filter { $0.url?.path == "/api/translate/text" } }
-    static func reset() { lock.lock(); stored = []; responseDelay = 0; lock.unlock() }
+    static func reset() { lock.lock(); stored = []; responseDelay = 0; publicQuota = false; lock.unlock() }
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
@@ -18,9 +19,13 @@ private final class AutomaticTranslationProtocol: URLProtocol {
         let body = Self.body(request)
         let text = body["text"] ?? ""
         let event = try! JSONSerialization.data(withJSONObject: ["delta": "Translated: " + text])
-        let complete = request.url?.path == "/api/translate/text"
-            ? event + Data("\n{\"done\":true}\n".utf8)
-            : Data("<h1 itemprop='name'>jamoa</h1><div id='def-fixture'><p class='font-bold'>A group.</p></div>".utf8)
+        let complete: Data
+        if request.url?.host == "api.mymemory.translated.net" {
+            complete = try! JSONSerialization.data(withJSONObject: Self.publicQuota
+                ? ["responseStatus":403, "quotaFinished":true]
+                : ["responseStatus":200, "responseData":["translatedText":"Public translation"]])
+        } else if request.url?.path == "/api/translate/text" { complete = event + Data("\n{\"done\":true}\n".utf8) }
+        else { complete = Data("<h1 itemprop='name'>jamoa</h1><div id='def-fixture'><p class='font-bold'>A group.</p></div>".utf8) }
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, !self.stopped else { return }
             self.client?.urlProtocol(self, didReceive: HTTPURLResponse(url: self.request.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type":"application/x-ndjson"])!, cacheStoragePolicy: .notAllowed)
@@ -45,8 +50,9 @@ final class AutomaticTranslationTests: XCTestCase {
     private func assistant() -> AssistantModel {
         AutomaticTranslationProtocol.reset()
         let config = URLSessionConfiguration.ephemeral; config.protocolClasses = [AutomaticTranslationProtocol.self]
-        let settings = ServiceSettings(loadStoredCredentials: false)
-        settings.url = "https://translation.fixture.example"; settings.token = "fixture-only"
+        let settings = ServiceSettings(loadStoredCredentials: false, preferences: UserDefaults(suiteName: "YozTests.Settings." + UUID().uuidString)!)
+        settings.token = "fixture-only"; settings.provider = .custom
+        settings.url = "https://translation.fixture.example"
         let preferences = UserDefaults(suiteName: "YozTests." + UUID().uuidString)!
         let assistant = AssistantModel(settings: settings, session: URLSession(configuration: config), pauseDelay: 0.06, preferences: preferences)
         assistant.automaticTranslationAllowed = { true }
@@ -58,6 +64,49 @@ final class AutomaticTranslationTests: XCTestCase {
         for _ in 0..<100 { if predicate() { return }; try await Task.sleep(nanoseconds: 10_000_000) }
         XCTFail("Expected automatic translation state was not reached")
     }
+    func testPublicProviderNeedsNoKeyAndNeverForwardsCustomCredential() async throws {
+        let model = assistant(); model.settings.provider = .myMemory
+        model.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: 5, length: 0), text: "Salom"))
+        try await waitUntil { !model.busy && !model.output.isEmpty }
+        XCTAssertEqual(model.output, "Public translation")
+        XCTAssertTrue(AutomaticTranslationProtocol.requests.isEmpty)
+        XCTAssertTrue(AutomaticTranslationProtocol.allRequests.allSatisfy { $0.url?.host == "api.mymemory.translated.net" && $0.value(forHTTPHeaderField: "X-API-Token") == nil && $0.value(forHTTPHeaderField: "Authorization") == nil })
+        model.stopWork(); model.close()
+    }
+
+    func testPublicQuotaErrorIsVisibleAndCannotBeApplied() async throws {
+        let model = assistant(); model.close(); model.settings.provider = .myMemory
+        AutomaticTranslationProtocol.publicQuota = true
+        model.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: 5, length: 0), text: "Salom"))
+        try await waitUntil { !model.busy && !model.error.isEmpty }
+        XCTAssertTrue(model.error.contains("quota")); XCTAssertTrue(model.visible)
+        XCTAssertFalse(model.canApply); XCTAssertTrue(model.output.isEmpty)
+        XCTAssertTrue(AutomaticTranslationProtocol.requests.isEmpty, "Never silently fall back to the private service")
+        model.stopWork(); model.close()
+    }
+
+    func testProviderSwitchCancelsOldResultAndUsesOnlySelectedProvider() async throws {
+        let model = assistant(); AutomaticTranslationProtocol.responseDelay = 0.12
+        model.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: 5, length: 0), text: "Salom"))
+        try await waitUntil { AutomaticTranslationProtocol.requests.count == 1 }
+        model.settings.provider = .myMemory
+        try await waitUntil { !model.busy && model.output == "Public translation" }
+        XCTAssertEqual(AutomaticTranslationProtocol.allRequests.count, 2)
+        model.stopWork(); model.close()
+    }
+
+    func testFreshTranslationSettingsContainNoDefaultCredentials() {
+        let preferences = UserDefaults(suiteName: "YozTests.Fresh." + UUID().uuidString)!
+        let settings = ServiceSettings(loadStoredCredentials: false, preferences: preferences)
+        XCTAssertEqual(settings.provider, .myMemory)
+        XCTAssertTrue(settings.url.isEmpty); XCTAssertTrue(settings.token.isEmpty)
+        XCTAssertFalse(settings.allowInsecureHTTP)
+        settings.provider = .custom
+        XCTAssertTrue(settings.token.isEmpty)
+        XCTAssertNil(preferences.string(forKey: "translationURL"))
+        XCTAssertNil(preferences.string(forKey: "translationAPIKey"))
+    }
+
     func testManualTypingDebouncesAndSendsLatestWholeDraft() async throws {
         let model = assistant(); model.edit()
         model.input = "First paragraph."

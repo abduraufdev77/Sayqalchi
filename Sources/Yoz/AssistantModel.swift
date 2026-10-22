@@ -14,35 +14,52 @@ enum WritingTool: String, CaseIterable, Identifiable {
 
 /// Per-user credentials live outside the app bundle and source control.
 final class ServiceSettings: ObservableObject {
-    @Published var url = UserDefaults.standard.string(forKey: "translationURL") ?? "" {
+    private let preferences: UserDefaults
+    private let loadsCredentials: Bool
+    var providerChanged: (() -> Void)?
+    @Published var provider: TranslationProvider = .myMemory {
+        didSet {
+            preferences.set(provider.rawValue, forKey: "translationProvider")
+            if loadsCredentials, provider == .custom, token.isEmpty { loadCredential() }
+            notice = ""; providerChanged?()
+        }
+    }
+    @Published var url = "" {
         didSet {
             let old = URLComponents(string: oldValue), new = URLComponents(string: url)
             if old?.host != new?.host || old?.port != new?.port || old?.scheme != new?.scheme { allowInsecureHTTP = false }
         }
     }
-    @Published var allowInsecureHTTP = UserDefaults.standard.bool(forKey: "translationAllowHTTP")
+    @Published var allowInsecureHTTP = false
     @Published var token = ""
     @Published var notice = ""
-    init(loadStoredCredentials: Bool = true) {
+    init(loadStoredCredentials: Bool = true, preferences: UserDefaults = .standard) {
+        self.preferences = preferences
+        self.loadsCredentials = loadStoredCredentials
         guard loadStoredCredentials else { return }
         let env = ProcessInfo.processInfo.environment
-        if let value = env["TRANSLATION_API_KEY"] { token = value }
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "uz.yoz.translation", kSecAttrAccount as String: "api-token",
-            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
-        var result: CFTypeRef?
-        if token.isEmpty, SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data {
-            token = String(data: data, encoding: .utf8) ?? ""
-        }
-        if let value = env["TRANSLATION_API_URL"] { url = value }
-        if let value = env["TRANSLATION_API_KEY"] { token = value }
-        if let value = env["TRANSLATION_ALLOW_INSECURE_HTTP"] { allowInsecureHTTP = value == "true" }
+        url = env["TRANSLATION_API_URL"] ?? preferences.string(forKey: "translationURL") ?? ""
+        allowInsecureHTTP = env["TRANSLATION_ALLOW_INSECURE_HTTP"].map { $0 == "true" } ?? preferences.bool(forKey: "translationAllowHTTP")
+        token = env["TRANSLATION_API_KEY"] ?? ""
+        provider = (env["TRANSLATION_PROVIDER"] ?? preferences.string(forKey: "translationProvider"))
+            .flatMap(TranslationProvider.init(rawValue:)) ?? (url.isEmpty ? .myMemory : .custom)
+        if provider == .custom, token.isEmpty { loadCredential() }
         if let index = CommandLine.arguments.firstIndex(of: "--import-env"), CommandLine.arguments.count > index + 1 {
             importEnvironment(URL(fileURLWithPath: CommandLine.arguments[index + 1]))
         }
     }
+    private func loadCredential() {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "uz.yoz.translation", kSecAttrAccount as String: "api-token",
+            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+        var result: CFTypeRef?
+        if SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data {
+            token = String(data: data, encoding: .utf8) ?? ""
+        }
+    }
     func importEnvironment(_ file: URL) {
         guard let content = try? String(contentsOf: file, encoding: .utf8) else { notice = "Could not read the configuration file."; return }
+        provider = .custom
         for line in content.components(separatedBy: .newlines) {
             let parts = line.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             guard parts.count == 2 else { continue }
@@ -55,6 +72,8 @@ final class ServiceSettings: ObservableObject {
         save()
     }
     func save() {
+        preferences.set(provider.rawValue, forKey: "translationProvider")
+        if provider == .myMemory { notice = "MyMemory is ready. No account or API key is needed."; return }
         do { _ = try configuration() } catch { notice = error.localizedDescription; return }
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "uz.yoz.translation", kSecAttrAccount as String: "api-token"]
@@ -67,8 +86,8 @@ final class ServiceSettings: ObservableObject {
             result = SecItemAdd(item as CFDictionary, nil)
         } else { result = status }
         guard result == errSecSuccess else { notice = "Keychain could not save the API key (\(result))."; return }
-        UserDefaults.standard.set(url, forKey: "translationURL")
-        UserDefaults.standard.set(allowInsecureHTTP, forKey: "translationAllowHTTP")
+        preferences.set(url, forKey: "translationURL")
+        preferences.set(allowInsecureHTTP, forKey: "translationAllowHTTP")
         notice = "Saved. The API key is stored in your Mac’s Keychain."
     }
     func configuration() throws -> TranslationConfiguration { try TranslationConfiguration(baseURL: url, token: token, allowInsecureHTTP: allowInsecureHTTP) }
@@ -139,6 +158,11 @@ final class AssistantModel: ObservableObject {
         config.httpCookieStorage = nil; config.urlCache = nil
         config.timeoutIntervalForRequest = 90; config.timeoutIntervalForResource = 120
         self.session = session ?? URLSession(configuration: config, delegate: SameOriginRedirects(), delegateQueue: nil)
+        settings.providerChanged = { [weak self] in
+            guard let self else { return }
+            self.cancelWork(for: .translate); self.prepared[.translate] = nil
+            self.prepareRequestedTools()
+        }
     }
     deinit { pendingPreparation?.cancel(); tasks.values.forEach { $0.cancel() }; session.invalidateAndCancel() }
     private var automaticEnabled: Bool { automaticTranslationAllowed?() ?? (app?.enabled == true) }
@@ -315,19 +339,22 @@ final class AssistantModel: ObservableObject {
     }
     private func isCurrent(_ tool: WritingTool, _ ticket: (UUID, UUID)) -> Bool { generation == ticket.0 && requestIDs[tool] == ticket.1 }
     private func prepareTranslation() {
-        let ticket = begin(.translate), text = input, direction = direction
+        let ticket = begin(.translate), text = input, direction = direction, provider = settings.provider
         do {
-            let config = try settings.configuration()
-            _ = try config.request(text: text, direction: direction)
+            let config = provider == .custom ? try settings.configuration() : nil
+            if let config { _ = try config.request(text: text, direction: direction) }
             tasks[.translate] = Task { @MainActor [weak self] in
                 guard let self else { return }
                 do {
-                    let result = try await TranslationService.translate(text, direction: direction, configuration: config, session: session) { [weak self] partial in
+                    let progress: (String) async -> Void = { [weak self] partial in
                         await MainActor.run {
                             guard let self, self.isCurrent(.translate, ticket) else { return }
                             self.prepared[.translate] = PreparedResult(text: partial, busy: true)
                         }
                     }
+                    let result: String
+                    if let config { result = try await TranslationService.translate(text, direction: direction, configuration: config, session: session, progress: progress) }
+                    else { result = try await PublicTranslationService.translate(text, direction: direction, session: session, progress: progress) }
                     guard !Task.isCancelled, isCurrent(.translate, ticket) else { return }
                     prepared[.translate] = PreparedResult(text: result)
                     revealPreparedResult()
@@ -361,7 +388,7 @@ final class AssistantModel: ObservableObject {
         let message: String
         if [NSURLErrorSecureConnectionFailed, NSURLErrorServerCertificateUntrusted, NSURLErrorServerCertificateHasBadDate].contains((error as NSError).code) {
             message = "The service could not establish HTTPS. Check its URL and TLS configuration in Settings."
-        } else { message = (error as? AssistantError)?.localizedDescription ?? "Could not reach the source. Check the connection and refresh to retry." }
+        } else { message = (error as? AssistantError)?.localizedDescription ?? (error as? PublicTranslationError)?.localizedDescription ?? "Could not reach the source. Check the connection and refresh to retry." }
         prepared[tool] = PreparedResult(error: message)
         revealPreparedResult()
     }

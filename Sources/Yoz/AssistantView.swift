@@ -207,8 +207,23 @@ struct TranslationSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             Label("Translation service", systemImage: "globe").font(Design.font(17, .medium))
-            Text("Only your default service runs after a pause. Other services run when you open their tab. Translation sends the whole draft to your configured service; Izohchi sends only the selected word or word at the cursor to Izoh.uz. Format and Document stay on your Mac.")
+            Picker("Provider", selection: $settings.provider) {
+                ForEach(TranslationProvider.allCases) { provider in Text(provider.title).tag(provider) }
+            }.pickerStyle(.segmented)
+            Text("Only your default tool runs after a pause. Other tools run when you open their tab. Format and Document stay on your Mac.")
                 .font(Design.font(12)).foregroundStyle(Design.muted).lineSpacing(4)
+            if settings.provider == .myMemory {
+                Text("No account or key needed. Uzbek ↔ English and Russian use MyMemory’s public service; Latin ↔ Cyrillic runs locally.")
+                    .font(Design.font(12)).foregroundStyle(Design.muted)
+                Text("Free anonymous allowance: 5,000 characters per day, subject to provider limits. Submitted text goes to MyMemory, whose policy permits long-term retention. Use your own service for private documents.")
+                    .font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(3)
+                HStack {
+                    Link("MyMemory privacy ↗", destination: URL(string: "https://mymemory.translated.net/terms-and-conditions")!)
+                    Link("Usage limits ↗", destination: URL(string: "https://mymemory.translated.net/doc/usagelimits.php")!)
+                }.font(Design.font(11)).foregroundStyle(Design.muted).pointerCursor()
+            } else {
+            Text("Drafts are sent only to the service you configure. Your API key is stored in your Mac’s Keychain.")
+                .font(Design.font(12)).foregroundStyle(Design.muted)
             TextField("HTTPS service URL", text: $settings.url).textFieldStyle(.roundedBorder).accessibilityLabel("Translation service URL")
             Toggle("Allow unencrypted HTTP for this service", isOn: $settings.allowInsecureHTTP).font(Design.font(12))
             if settings.allowInsecureHTTP {
@@ -226,6 +241,7 @@ struct TranslationSettingsView: View {
             }
             Text(settings.notice.isEmpty ? "Your API key is never included in the app bundle or repository." : settings.notice)
                 .font(Design.font(11)).foregroundStyle(Design.muted)
+            }
         }.padding(22).background(.white, in: RoundedRectangle(cornerRadius: 15))
     }
 }

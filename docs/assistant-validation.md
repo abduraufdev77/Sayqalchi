@@ -166,3 +166,47 @@ Native short-result captures confirm a 339 × 132 point window for both Format
 and Translate, with 269 points of content width. The sample `shahar` produced
 `şahar` and `city`; the accept button remains available without hover. Strict
 signature and DMG checksum verification passed.
+
+
+## Public translation and credential audit (build 14)
+
+New installs use the documented anonymous MyMemory GET API with no login, key,
+email, shared account, or custom-service header. Existing configured installs
+retain their provider. Settings offers MyMemory and Custom service, persists the
+selection, and describes public quota and retention. Format stays the default tool;
+other services remain on demand. Switching providers cancels stale work.
+
+Public translation supports Uzbek ↔ English and Russian. Requests contain one
+paragraph at most and <=500 UTF-8 bytes, preserving original paragraph separators
+when assembled. The anonymous draft cap is 5,000 Unicode scalars; oversize drafts
+fail without truncation. Quota and invalid responses never produce an applicable
+partial result, and failures never silently fall back to the private service.
+Uzbek Latin ↔ Cyrillic runs locally with the public provider, preserving case,
+paragraphs, URLs, email addresses, and common document links.
+
+Official references:
+- https://mymemory.translated.net/doc/spec.php
+- https://mymemory.translated.net/doc/usagelimits.php
+- https://mymemory.translated.net/terms-and-conditions
+- https://docs.cloud.google.com/translate/docs/setup
+- https://docs.cloud.google.com/translate/docs/authentication
+
+63 automated tests pass. Synthetic live API checks succeeded in all four language
+translation directions. The native compact result showed `shahar` → `city` using
+MyMemory without importing a key. Six-direction coverage includes both offline
+script conversions. Existing custom-service transport checks still pass.
+
+The audit found no configured credential, local endpoint value, or common
+credential signature in working source, the app bundle, or 126 reachable history
+blobs checked before this commit. Real .env variants are ignored, examples have
+blank keys, and fresh settings have empty URL/token values. Keys imported for a
+custom service live in Keychain; runtime .env overrides are never bundled. Tests
+use isolated preferences and fixture-only keys. The build now audits source and
+the staged app before signing. A synthetic credential canary was rejected with
+its value redacted. This targeted scanner cannot recognize every secret format.
+
+The public provider was selected and persisted in the native Settings UI. After
+relaunching with all translation environment variables removed, MyMemory remained
+selected, credential fields were absent, and Accessibility/shortcut stayed
+connected. The user's paused state was preserved. Final strict bundle signature
+and DMG checksum checks passed.

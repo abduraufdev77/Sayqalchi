@@ -67,6 +67,14 @@ final class AssistantCoreTests: XCTestCase {
         XCTAssertNil(URLComponents(url: url, resolvingAgainstBaseURL: false)?.query)
         XCTAssertEqual(try DictionaryService.normalizedQuery(" ÖZBEKÇA "), "o‘zbekcha")
     }
+    func testAutomaticLookupUsesSelectionOrCaretWordAndKeepsUzbekApostrophes() {
+        let text = "Old paragraph.\n\nYangi jamoa va shamg'alar."
+        XCTAssertEqual(DictionaryService.query(in: text, selection: NSRange(location: (text as NSString).length, length: 0)), "shamg'alar")
+        let selection = (text as NSString).range(of: "Yangi jamoa")
+        XCTAssertEqual(DictionaryService.query(in: text, selection: selection), "Yangi jamoa")
+        XCTAssertEqual(DictionaryService.query(in: "jamoa", selection: NSRange(location: 5, length: 0)), "jamoa")
+        XCTAssertEqual(DictionaryService.query(in: "", selection: NSRange(location: 0, length: 0)), "")
+    }
     func testDocumentCleanupPreservesBreaksAndIndentation() {
         let original = "  O'zbekcha   matn.  \n\n\tIkkinchi\t\tqator.\n"
         let clean = DocumentCleanup.clean(original)

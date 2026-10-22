@@ -46,33 +46,31 @@ struct AssistantNotchView: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    if !assistant.waitingForPause {
                     if assistant.tool == .dictionary { dictionaryBody }
                     else if assistant.tool == .document { documentBody }
                     else if !assistant.output.isEmpty { resultText }
-                    else { inputPreview }
                     if !assistant.error.isEmpty {
                         Text(assistant.error).font(Design.font(11)).foregroundStyle(Design.orange).fixedSize(horizontal: false, vertical: true)
+                    }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                     .id(assistant.tool)
                     .transition(.opacity.combined(with: .offset(y: reduceMotion ? 0 : 4)))
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             HStack(spacing: 12) {
-                Button { assistant.run() } label: {
-                    HStack(spacing: 6) {
-                        if assistant.busy { ProgressView().controlSize(.mini).scaleEffect(0.7) }
-                        Text(actionTitle)
-                    }.font(Design.font(11, .semibold)).foregroundStyle(.black).padding(.horizontal, 14).frame(height: 29)
-                        .background(Design.cyan, in: Capsule())
-                }.buttonStyle(PointerButtonStyle()).disabled(assistant.busy)
+                if assistant.busy {
+                    ProgressView().controlSize(.mini).tint(Design.cyan)
+                } else if assistant.waitingForPause {
+                    Text("Typing…").font(Design.font(9)).foregroundStyle(.white.opacity(0.4))
+                }
                 if assistant.busy {
                     Button("Cancel") { assistant.resetResult() }.buttonStyle(PointerButtonStyle()).font(Design.font(10)).foregroundStyle(.white.opacity(0.6))
-                } else if !assistant.output.isEmpty || assistant.entry != nil {
+                } else if !assistant.waitingForPause && (!assistant.output.isEmpty || assistant.entry != nil) {
                     Button { assistant.copy() } label: {
                         Label("Copy", systemImage: "doc.on.doc")
                     }.buttonStyle(NotchActionStyle()).help("Copy result")
                     Button {
-                        if assistant.details { assistant.editing = false }
                         assistant.details.toggle(); assistant.resize?()
                     } label: {
                         Label(assistant.details ? "Less" : "More", systemImage: assistant.details ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
@@ -91,26 +89,11 @@ struct AssistantNotchView: View {
             }.padding(.bottom, 12)
         }.foregroundStyle(.white)
     }
-    private var actionTitle: String {
-        if assistant.busy { return "Working…" }
-        switch assistant.tool { case .format: return "Format"; case .translate: return "Translate"; case .dictionary: return "Find meaning"; case .document: return "Clean spacing" }
-    }
-    private var inputPreview: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text(assistant.tool == .format ? "A little shift in your letters." : "A bridge between languages.")
-                .font(Design.font(19, .medium)).tracking(-0.4)
-            Text(assistant.input.isEmpty ? "Focus a draft and hover here, or use the pencil to paste text." : String(assistant.input.prefix(assistant.details ? 16000 : 600)))
-                .font(Design.font(12)).lineSpacing(3).foregroundStyle(.white.opacity(0.55))
-        }
-    }
     @ViewBuilder private var resultText: some View {
         let text = assistant.tool == .format ? Transliterator.runs(in: assistant.input).reduce(Text("")) {
             $0 + Text($1.text).foregroundColor($1.changed ? Design.orange : .white)
         } : Text(assistant.output).foregroundColor(Design.orange)
-        text.font(Design.font(assistant.details ? 14 : 13)).lineSpacing(3).textSelection(.enabled)
-        if !assistant.details && assistant.output.count > 800 {
-            Text("Scroll to review the whole result, or open More.").font(Design.font(9)).foregroundStyle(.white.opacity(0.4))
-        }
+        text.font(Design.font(14)).lineSpacing(3).textSelection(.enabled)
     }
     @ViewBuilder private var dictionaryBody: some View {
         if let entry = assistant.entry {
@@ -130,17 +113,6 @@ struct AssistantNotchView: View {
                 }.padding(.bottom, 3)
             }
             Link("Izoh.uz ↗", destination: entry.source).pointerCursor().font(Design.font(10, .medium)).foregroundStyle(Design.cyan)
-        } else {
-            Text("Izohchi").font(Design.font(21, .medium))
-            Text(assistant.input.isEmpty ? "Select a word or short phrase in your draft, then hover here. You can also enter a query with the pencil." : String(assistant.input.prefix(140)))
-                .font(Design.font(12)).foregroundStyle(.white.opacity(0.6))
-            Text("Free lookup · Izoh.uz · only the query is sent").font(Design.font(9)).foregroundStyle(.white.opacity(0.35))
-            if let url = try? DictionaryService.sourceURL(assistant.input) {
-                HStack(spacing: 14) {
-                    Link("Open Izoh.uz ↗", destination: url)
-                    Link("Savodxon ↗", destination: URL(string: "https://savodxon.uz/izoh")!.appending(queryItems: [URLQueryItem(name: assistant.input, value: nil)]))
-                }.font(Design.font(10)).foregroundStyle(Design.cyan)
-            }
         }
     }
     private var documentBody: some View {
@@ -152,11 +124,6 @@ struct AssistantNotchView: View {
                 stat("~\(assistant.statistics.readingMinutes)m", "read time")
             }
             if !assistant.output.isEmpty { resultText }
-            else {
-                Text("Clean repeated spaces and trailing whitespace while preserving paragraph breaks and indentation.")
-                    .font(Design.font(12)).foregroundStyle(.white.opacity(0.55)).lineSpacing(3)
-            }
-            Text("On your Mac · preview before replacing").font(Design.font(9)).foregroundStyle(.white.opacity(0.35))
         }
     }
     private func stat(_ value: String, _ label: String) -> some View {
@@ -172,7 +139,7 @@ struct TranslationSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             Label("Translation service", systemImage: "globe").font(Design.font(17, .medium))
-            Text("Translation sends the text you choose to this service. Formatting and document tools run locally. Izohchi sends only your lookup query to Izoh.uz.")
+            Text("While Yoz is enabled, a typing pause prepares all tabs: your whole draft goes to the translation service, and only the selected word or word at the cursor goes to Izoh.uz. Pause Yoz to stop. Format and Document run locally.")
                 .font(Design.font(12)).foregroundStyle(Design.muted).lineSpacing(4)
             TextField("HTTPS service URL", text: $settings.url).textFieldStyle(.roundedBorder).accessibilityLabel("Translation service URL")
             Toggle("Allow unencrypted HTTP for this service", isOn: $settings.allowInsecureHTTP).font(Design.font(12))
@@ -232,9 +199,8 @@ private struct TranslationLanguagePicker: View {
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 9) {
-                Button { sourceOpen.toggle() } label: { badge(source, role: "FROM") }
+        HStack(spacing: 6) {
+                Button { sourceOpen.toggle() } label: { badge(source) }
                     .buttonStyle(PointerButtonStyle()).accessibilityLabel("Source language: \(source.name)")
                     .popover(isPresented: $sourceOpen, arrowEdge: .bottom) {
                         options(TranslationLanguage.allCases, selected: source) { language in
@@ -250,9 +216,9 @@ private struct TranslationLanguagePicker: View {
                     }
                 } label: {
                     Image(systemName: "arrow.left.arrow.right").font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.5)).frame(width: 28, height: 36)
+                        .foregroundStyle(.white.opacity(0.5)).frame(width: 22, height: 28)
                 }.buttonStyle(PointerButtonStyle()).help("Swap languages").accessibilityLabel("Swap languages")
-                Button { targetOpen.toggle() } label: { badge(target, role: "TO") }
+                Button { targetOpen.toggle() } label: { badge(target) }
                     .buttonStyle(PointerButtonStyle()).accessibilityLabel("Target language: \(target.name)")
                     .popover(isPresented: $targetOpen, arrowEdge: .bottom) {
                         options(targets, selected: target) { language in
@@ -262,24 +228,18 @@ private struct TranslationLanguagePicker: View {
                             targetOpen = false
                         }
                     }
-            }
-            Text("Sends this text to your configured service only when you click Translate.")
-                .font(Design.font(9)).foregroundStyle(.white.opacity(0.42))
+                Spacer(minLength: 0)
         }
     }
-    private func badge(_ language: TranslationLanguage, role: String) -> some View {
-        HStack(spacing: 9) {
-            Text(language.badge).font(Design.font(10, .semibold)).foregroundStyle(Design.cyan)
-                .frame(width: 29, height: 29).background(Design.cyan.opacity(0.1), in: RoundedRectangle(cornerRadius: 7))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(role).font(Design.font(7, .semibold)).tracking(1).foregroundStyle(.white.opacity(0.35))
-                Text(language.name).font(Design.font(12, .medium)).lineLimit(1)
-            }
-            Spacer(minLength: 2)
-            Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold)).foregroundStyle(.white.opacity(0.4))
-        }.padding(.horizontal, 10).frame(maxWidth: .infinity).frame(height: 46)
-            .background(.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.white.opacity(0.1), lineWidth: 0.7))
+    private func badge(_ language: TranslationLanguage) -> some View {
+        HStack(spacing: 6) {
+            Text(language.badge).font(Design.font(8, .semibold)).foregroundStyle(Design.cyan)
+                .frame(width: 21, height: 20).background(Design.cyan.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
+            Text(language.name).font(Design.font(10, .medium)).lineLimit(1)
+            Image(systemName: "chevron.down").font(.system(size: 7, weight: .semibold)).foregroundStyle(.white.opacity(0.4))
+        }.padding(.horizontal, 8).frame(height: 28)
+            .background(.white.opacity(0.065), in: Capsule())
+            .overlay(Capsule().strokeBorder(.white.opacity(0.1), lineWidth: 0.7))
     }
     private func options(_ languages: [TranslationLanguage], selected: TranslationLanguage, choose: @escaping (TranslationLanguage) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 3) {

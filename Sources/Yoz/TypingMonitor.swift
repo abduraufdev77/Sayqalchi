@@ -70,6 +70,7 @@ final class TypingMonitor {
         watchdog?.cancel(); watchdog = nil
     }
     func enabledChanged() {
+        if model?.enabled != true { model?.assistant.stopWork() }
         suspend(); clear()
         if model?.enabled == true { requestPoll(after: 0); armWatchdog() }
         else { status("Suggestions paused · double-press Right Shift or double-click ö to enable") }
@@ -119,9 +120,14 @@ final class TypingMonitor {
         }
         observedEditor = element
     }
+    func assistantModeChanged() {
+        stableInput = nil; pause.reset(); hideSuggestion()
+        requestPoll(after: 0)
+    }
     private func inputActivity() {
         guard model?.enabled == true, !applying else { return }
         stableInput = nil; pause.reset(); hideSuggestion()
+        model?.assistant.draftWillChange()
         if model?.isTyping != true { model?.isTyping = true }
         requestPoll()
     }
@@ -135,13 +141,13 @@ final class TypingMonitor {
         guard model.enabled else { status("Suggestions paused"); clear(); return }
         guard trusted else { status("macOS has not granted this build Accessibility access"); clear(); return }
         guard !applying else { return }
+        if model.assistantActive && !model.assistant.followsDraft { return }
         guard !IsSecureEventInputEnabled() else { status("macOS Secure Input is active; suggestions paused"); clear(); return }
         guard let app = NSWorkspace.shared.frontmostApplication else { status("Waiting for an app"); clear(); return }
         guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { clear(); return }
         let name = app.localizedName ?? "Current app"
         if model.activeApp != name { model.activeApp = name }
-        guard !model.excludedApps.contains(app.bundleIdentifier ?? ""),
-              !["com.apple.Terminal", "com.googlecode.iterm2", "com.agilebits.onepassword7", "com.1password.1password"].contains(app.bundleIdentifier ?? "") else {
+        guard isAllowed(app) else {
             status("\(name) is excluded"); clear(); return
         }
         configureObserver(pid: app.processIdentifier)
@@ -160,10 +166,15 @@ final class TypingMonitor {
         guard dismissed != input.key else { hideSuggestion(); model.isTyping = false; status("Dismissed; edit the text for another suggestion"); return }
         guard pause.ready(key: input.key, now: ProcessInfo.processInfo.systemUptime) else {
             if !model.isTyping { model.isTyping = true }
+            model.assistant.draftWillChange(resetApplied: false)
             hideSuggestion(); status("\(name): waiting for a pause in typing…"); requestPoll(after: 0.67); return
         }
         if model.isTyping { model.isTyping = false }
         stableInput = input.key
+        model.assistant.receiveStableDraft(input)
+        if model.assistant.tool != .format {
+            hideSuggestion(); status("\(name): writing tools prepared after typing pause"); return
+        }
         guard let s = proposal(input) else {
             hideSuggestion(); status("\(name): all text already uses the new letters"); return
         }
@@ -272,14 +283,16 @@ final class TypingMonitor {
         confirmReplacement(current, stage: 0)
         return true
     }
+    private func isAllowed(_ app: NSRunningApplication) -> Bool {
+        let id = app.bundleIdentifier ?? ""
+        return model?.excludedApps.contains(id) != true
+            && !["terminal", "iterm", "onepassword", "1password", "bitwarden", "keychain", "lastpass"].contains(where: id.lowercased().contains)
+    }
     /// Capture only an enabled, allowed editable field. Never read protected apps.
     func captureDraft() -> Input? {
         guard let model, model.enabled, AXIsProcessTrusted(), !IsSecureEventInputEnabled(),
               let front = NSWorkspace.shared.frontmostApplication,
-              front.processIdentifier != getpid(),
-              !model.excludedApps.contains(front.bundleIdentifier ?? "") else { return nil }
-        let id = front.bundleIdentifier?.lowercased() ?? ""
-        guard !["terminal", "iterm", "1password", "bitwarden", "keychain", "lastpass"].contains(where: id.contains) else { return nil }
+              front.processIdentifier != getpid(), isAllowed(front) else { return nil }
         return readInput(pid: front.processIdentifier)
     }
 
@@ -372,7 +385,7 @@ final class TypingMonitor {
         hideSuggestion()
     }
     private func hideSuggestion() { snapshot = nil; if model?.suggestion != nil { model?.suggestion = nil } }
-    func clear() { stableInput = nil; pause.reset(); hideSuggestion(); pause.reset(); pendingElement = nil; if model?.isTyping == true { model?.isTyping = false } }
+    func clear() { model?.assistant.clearLiveDraft(); stableInput = nil; pause.reset(); hideSuggestion(); pause.reset(); pendingElement = nil; if model?.isTyping == true { model?.isTyping = false } }
 
     private func restore(_ range: CFRange, in element: AXUIElement) {
         var range = range
@@ -432,6 +445,9 @@ final class TypingMonitor {
             if monitor.model?.assistantActive == true {
                 if key == 36 && modifiers == .maskAlternate { DispatchQueue.main.async { monitor.model?.assistantAccept?() }; return nil }
                 if key == 53 && modifiers.isEmpty { DispatchQueue.main.async { monitor.model?.assistantDismiss?() }; return nil }
+                if monitor.model?.assistant.followsDraft == true {
+                    DispatchQueue.main.async { monitor.inputActivity() }
+                }
                 return Unmanaged.passUnretained(event)
             }
             if monitor.model?.suggestion != nil, key == 36 && modifiers == .maskAlternate { DispatchQueue.main.async { monitor.accept() }; return nil }

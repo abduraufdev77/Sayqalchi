@@ -11,6 +11,7 @@ let package = Package(
         .target(name: "AssistantCore", dependencies: ["SwiftSoup"]),
         .executableTarget(name: "Yoz", dependencies: ["TransliterationCore", "AssistantCore"], resources: [.copy("Resources")]),
         .testTarget(name: "TransliterationCoreTests", dependencies: ["TransliterationCore"]),
-        .testTarget(name: "AssistantCoreTests", dependencies: ["AssistantCore"])
+        .testTarget(name: "AssistantCoreTests", dependencies: ["AssistantCore"]),
+        .testTarget(name: "YozTests", dependencies: ["Yoz"])
     ]
 )

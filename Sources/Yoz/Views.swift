@@ -51,7 +51,7 @@ struct RootView: View {
             Spacer()
             VStack(alignment: .leading, spacing: 11) {
                 HStack { Image(systemName: "lock.shield"); Text("Your writing, your choice").font(Design.font(11, .medium)) }
-                Text("Local formatting.\nOnline tools only on request.").font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(4)
+                Text("Local formatting.\nOnline tools after a pause.").font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(4)
             }.padding(.bottom, 23)
             Rectangle().fill(Design.line).frame(height: 1)
             HStack { Text("YOZ FOR MAC").tracking(1.5); Spacer(); Text("v0.5.0") }.font(Design.font(9, .medium)).foregroundStyle(Design.muted).padding(.top, 18)
@@ -90,7 +90,7 @@ struct OverviewView: View {
                 Image(systemName: model.accessibilityGranted ? "checkmark.shield" : "hand.raised").font(.system(size: 23, weight: .light)).frame(width: 46, height: 46).background(Design.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 5) {
                     Text(model.accessibilityGranted ? "You're ready to write." : "One permission. Every app.").font(Design.font(15, .medium))
-                    Text(model.accessibilityGranted ? "Pause after typing, then click Use at the notch or press ⌥ Return." : "Enable Accessibility to suggest letters while you type in other apps.").font(Design.font(11)).foregroundStyle(Design.muted)
+                    Text(model.accessibilityGranted ? "Pause, hover the notch, and choose a prepared result." : "Enable Accessibility to suggest letters while you type in other apps.").font(Design.font(11)).foregroundStyle(Design.muted)
                 }
                 Spacer()
                 if !model.accessibilityGranted {

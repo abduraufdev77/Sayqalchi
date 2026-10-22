@@ -77,3 +77,29 @@ keeps the brief resize fluid; the explicit Reduce Motion preference still applie
 Native collapse captures show intermediate silhouette heights of approximately
 320 → 132 → 43 → 33 points. These use the same close path as hover exit, including
 the assistant's immediate and debounced updates. The existing 35 tests pass.
+
+## Automatic preparation update (build 10)
+
+A stable focused draft now prepares Format, Translate, Izohchi and Document in
+parallel after the existing 650 ms pause detector. Format and Document are local;
+the configured translation service receives the full draft, and Izoh.uz receives
+only the selected phrase or the word at the cursor. Manual input uses the same
+pause delay. Pausing Yoz, changing text/focus, and entering protected editors
+invalidate pending work. Incomplete streams cannot be applied or copied.
+
+Tabs share one prepared snapshot. Switching tabs or closing/reopening the hover
+panel retains completed results; cursor-only movement reuses translation. New
+typing invalidates Use immediately. Applying a result suppresses retranslating the
+inserted text until a real edit occurs. Background work continues while a hover
+panel collapses, and More retains the larger view for reading.
+
+The native synthetic check processed a two-paragraph draft through all four tools
+without pressing a processing button. Its English translation preserved the blank
+line; the caret word `jamoa` returned four meanings, with two in the compact view.
+Captures were inspected for every tab. The language badges are 28 points tall;
+promotional headings, explanatory body copy, and processing action buttons were
+removed. Explicit copy and replacement controls remain.
+
+45 automated tests pass. New tests cover manual debounce, all-tab preparation,
+latest-language selection, cancellation, stale-result protection, pause handling,
+caret-only reuse, cached tabs, applied-text suppression, and dictionary query scope.

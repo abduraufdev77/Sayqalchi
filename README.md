@@ -12,7 +12,7 @@ A native assistant that grows out of your Mac’s notch.
 [![Version](https://img.shields.io/badge/version-0.5.0_preview-00DDF1?style=flat-square)](packaging/Info.plist)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-1B1D1B?style=flat-square&logo=apple&logoColor=white)](#install)
 [![Apple silicon](https://img.shields.io/badge/build-Apple_silicon-91EF57?style=flat-square)](#install)
-[![Explicit online tools](https://img.shields.io/badge/online_tools-on_request-FF743D?style=flat-square)](#your-data)
+[![Automatic tools](https://img.shields.io/badge/online_tools-after_pause-FF743D?style=flat-square)](#your-data)
 
 **[Install](#install) · [Shortcuts](#shortcuts) · [The alphabet](#the-alphabet) · [Your data](#your-data) · [Development](#development)**
 
@@ -29,25 +29,27 @@ A native assistant that grows out of your Mac’s notch.
 </div>
 
 Hover over Ö to reveal a rounded tool strip. The logo and waveform keep their
-positions while the black island expands below the camera. Choose a tool, review
-its result, and copy it or replace the captured draft with **⌥ ↵**.
+positions while the black island expands below the camera. Each typing pause prepares all four tools. Choose a tab, review
+its cached result, and copy it or replace the captured draft with **⌥ ↵**.
 
 | Tool | What it does | Processing |
 | --- | --- | --- |
 | **Format** | Convert the complete draft to the new Uzbek alphabet, with orange inline changes. | Local |
-| **Translate** | Uzbek ↔ English, Uzbek ↔ Russian, Uzbek Latin ↔ Cyrillic. Stream a result from your configured translation service. | Explicit request |
-| **Izohchi** | Look up a selected word or short phrase. Two meanings and one example per meaning in the preview; **More** opens all meanings in a larger notch. | Izoh.uz, explicit request |
+| **Translate** | Uzbek ↔ English, Uzbek ↔ Russian, Uzbek Latin ↔ Cyrillic. Prepare a result from your configured translation service after a typing pause. | Automatic after pause |
+| **Izohchi** | Look up a selected word or short phrase. Two meanings and one example per meaning in the preview; **More** opens all meanings in a larger notch. | Izoh.uz, after pause |
 | **Document** | Count words, characters and text lines, estimate reading time, and preview spacing cleanup while keeping paragraph breaks and indentation. | Local |
 
 Use the pencil to enter or paste text directly. Manual input results can be copied;
 replacing another app’s draft requires a fresh captured editor. **Refresh** reads
-that editor again. Translation and lookup never run just because you type or hover.
+that editor again. While Yoz is enabled, a typing pause prepares all four tabs. Translation sends the whole draft to your configured service; Izohchi sends the selection or word at the cursor. Hover to view cached results, and switch tabs without reprocessing. Pause Yoz to stop automatic requests.
 
 ### Connect your translation service
 
 Open **Settings → Translation service** and enter the base URL and API key, or
 import a local `.env` file using the shape in [`.env.example`](.env.example).
 The key is stored in macOS Keychain and is never shipped in the binary.
+
+The compact widget shows prepared results with small language badges and no processing buttons or promotional headings.
 
 The client uses `POST /api/translate/text`, `X-API-Token`, JSON fields
 `sourceLanguage`, `targetLanguage`, `text`, and an NDJSON stream of `delta` events
@@ -213,8 +215,8 @@ without Accessibility permission.
 persistent typed-text history. It keeps the captured draft and result in memory
 while the assistant is open and clears them when you close it.
 
-- **Translation:** clicking Translate sends the captured or manually entered text to your configured service. The provider’s own retention policy applies.
-- **Izohchi:** clicking Find meaning sends only the word or short phrase to Izoh.uz. A bounded temporary memory cache avoids repeat requests.
+- **Translation:** after a typing pause, Yoz sends the complete focused draft or manually entered text to your configured service. The provider’s own retention policy applies.
+- **Izohchi:** each pause sends only the selected word/phrase or word at the cursor to Izoh.uz. A bounded temporary memory cache avoids repeat requests.
 - API keys live in Keychain; the URL and HTTP preference live in UserDefaults. `.env` files are ignored by Git and never bundled.
 - Network requests use an ephemeral session without persistent cookies or a disk cache. Credentials are not forwarded across origins during redirects.
 
@@ -287,10 +289,10 @@ swift test                  # Run the automated suite
 ./scripts/package-dmg.sh    # Create a versioned DMG and checksum
 ```
 
-The **35 automated tests** cover alphabet rules, Unicode offsets, whole-field
+The **45 automated tests** cover alphabet rules, Unicode offsets, whole-field
 scope, nested editors, paragraph boundaries, double-press timing, notch geometry,
 the six translation directions and HTTP contract, incomplete/error streams,
-dictionary parsing and preview limits, URL validation, and document cleanup.
+dictionary parsing and preview limits, URL validation, document cleanup, automatic preparation, cancellation, and cached tab switching.
 Mock transport tests do not require credentials or internet access.
 
 See [0.5.0 validation notes](docs/assistant-validation.md) for live checks and known limits.

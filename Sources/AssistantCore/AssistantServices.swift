@@ -126,6 +126,24 @@ public struct DictionaryEntry: Equatable {
     public init(word: String, meanings: [DictionaryMeaning], source: URL) { self.word = word; self.meanings = meanings; self.source = source }
 }
 public enum DictionaryService {
+    /// A selection is an explicit phrase. Otherwise inspect only the word at
+    /// the caret, so dictionary preparation never sends an entire paragraph.
+    public static func query(in text: String, selection: NSRange?) -> String {
+        let ns = text as NSString
+        if let selection, selection.location >= 0, selection.length > 0,
+           selection.location <= ns.length, selection.length <= ns.length - selection.location {
+            return ns.substring(with: selection).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if selection == nil, text.count <= 120, !text.contains("\n"), text.split(whereSeparator: { $0.isWhitespace }).count <= 5 {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let caret = min(ns.length, max(0, selection?.location ?? ns.length))
+        let regex = try! NSRegularExpression(pattern: #"[\p{L}\p{M}]+(?:['‘’ʻʼ-][\p{L}\p{M}]+)*"#)
+        let words = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        let word = words.first { $0.range.location <= caret && NSMaxRange($0.range) >= caret }
+            ?? words.last { NSMaxRange($0.range) <= caret }
+        return word.map { ns.substring(with: $0.range) } ?? ""
+    }
     public static func normalizedQuery(_ query: String) throws -> String {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !value.isEmpty else { throw AssistantError.empty }

@@ -3,6 +3,7 @@ import SwiftUI
 import Combine
 import TransliterationCore
 import AssistantCore
+import ApplicationServices
 
 @main
 enum YozMain {
@@ -79,6 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.monitor = TypingMonitor(model: model)
         let assistant = model.assistant
         assistant.app = model
+        assistant.automaticTranslationAllowed = { [weak self] in self?.model.enabled == true && self?.previewing == false }
         assistant.resize = { [weak self] in self?.updateAssistant() }
         assistant.requestEditing = { [weak self] in
             self?.panel.allowsEditing = true
@@ -116,10 +118,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 if self.model.assistant.visible { self.model.assistant.close() }
                 self.panel.orderOut(nil); return
             }
-            if self.model.assistant.visible { return }
-            if let suggestion, !typing {
-                self.showBar(original: suggestion.original, replacement: suggestion.replacement, preview: false)
-            } else { self.showActivity(typing: typing) }
+            if self.model.assistant.visible { self.updateAssistant(); return }
+            self.showActivity(typing: typing || self.model.assistant.anyBusy)
         }.store(in: &subscriptions)
         if !CommandLine.arguments.contains("--background") { showWindow() }
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > i + 1 {
@@ -189,6 +189,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     }
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self?.previewing = false }
+            }
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--auto-assistant-gallery"), CommandLine.arguments.count > i + 1 {
+            let directory = CommandLine.arguments[i + 1]
+            previewing = true
+            model.monitor = nil
+            let assistant = model.assistant
+            assistant.automaticTranslationAllowed = { true }
+            let sample = "O'zbekcha yozish oson.\n\nYangi g'oyalar va yaxshi jamoa."
+            assistant.receiveStableDraft(.init(element: AXUIElementCreateApplication(getpid()), pid: getpid(), caret: CFRange(location: (sample as NSString).length, length: 0), text: sample))
+            assistant.sourceName = "SAMPLE DRAFT"
+            assistant.open(capture: false)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                for _ in 0..<1200 {
+                    if !assistant.anyBusy { break }
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+                var report: [String: Any] = [:]
+                for tool in WritingTool.allCases {
+                    assistant.choose(tool)
+                    report[tool.rawValue] = ["output": assistant.output, "error": assistant.error, "meanings": assistant.entry?.meanings.count ?? 0]
+                    self.updateAssistant()
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    self.capturePanel(to: directory + "/auto-" + tool.rawValue.lowercased() + ".png")
+                }
+                if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
+                    try? data.write(to: URL(fileURLWithPath: directory + "/results.json"))
+                }
+                NSApp.terminate(nil)
             }
         }
         if let i = CommandLine.arguments.firstIndex(of: "--assistant-live-check"), CommandLine.arguments.count > i + 1 {
@@ -280,8 +310,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let work = DispatchWorkItem { [weak self] in self?.model.assistant.open() }
             hoverWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
-        } else if !inside && model.assistant.visible && !model.assistant.details && !model.assistant.busy
-                    && model.assistant.output.isEmpty && model.assistant.entry == nil && !model.assistant.editing {
+        } else if !inside && model.assistant.visible && !model.assistant.details && !model.assistant.editing {
             let work = DispatchWorkItem { [weak self] in self?.model.assistant.close() }
             hoverWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.55, execute: work)
@@ -293,25 +322,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard assistant.visible else {
             panel.allowsEditing = false; panel.resignKey()
             if model.enabled && model.accessibilityGranted {
-                if let suggestion = model.suggestion { showBar(original: suggestion.original, replacement: suggestion.replacement, preview: false) }
-                else { showActivity(typing: model.isTyping) }
+                showActivity(typing: model.isTyping || model.assistant.anyBusy)
             } else { panel.orderOut(nil) }
             return
         }
         let screen = activeScreen(), metrics = notchMetrics(screen)
         let width = min(screen.frame.width - 32, assistant.details ? 670 : 510)
-        let bodyHeight: CGFloat = assistant.details ? min(510, screen.visibleFrame.height - 95) : 295
+        let bodyHeight: CGFloat = assistant.details ? min(510, screen.visibleFrame.height - 95) : assistant.tool == .translate ? 235 : 295
         let frame = NotchGeometry.expandedFrame(screen: screen.frame, width: width, contentHeight: bodyHeight + 7,
             safeTop: metrics.safeTop, centerX: metrics.center, backingScale: screen.backingScaleFactor)
         notch.contentWidth = width - 70; notch.contentHeight = bodyHeight
         notch.safeTop = metrics.safeTop + 1 / screen.backingScaleFactor
         notch.notchWidth = metrics.width
-        notch.typing = assistant.busy
+        notch.typing = assistant.anyBusy || (assistant.followsDraft && model.isTyping)
         if !assistant.editing && panel.allowsEditing { panel.allowsEditing = false; panel.resignKey() }
         // Skip the window morph for streaming deltas and ordinary body changes.
         if notch.width == frame.width && notch.height == frame.height && panel.isVisible { return }
         present(frame: frame, screen: screen, mode: "expanded") {
-            self.notch.result = false; self.notch.typing = assistant.busy; self.notch.settling = false
+            self.notch.result = false; self.notch.typing = assistant.anyBusy || (assistant.followsDraft && self.model.isTyping); self.notch.settling = false
         }
     }
     private func activeScreen() -> NSScreen {
@@ -493,7 +521,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func endPreview() {
         previewing = false; previewToken = nil
         if let suggestion = model.suggestion { showBar(original: suggestion.original, replacement: suggestion.replacement, preview: false) }
-        else if model.enabled && model.accessibilityGranted { showActivity(typing: model.isTyping) }
+        else if model.enabled && model.accessibilityGranted { showActivity(typing: model.isTyping || model.assistant.anyBusy) }
         else { panel.orderOut(nil) }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }

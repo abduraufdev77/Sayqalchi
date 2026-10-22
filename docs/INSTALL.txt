@@ -40,7 +40,7 @@ text and selection APIs. Custom editors, remote desktops, and some browser
 editors may not expose them. Such fields are skipped; use the Playground to copy
 the transliterated result. Password fields and Terminal are skipped.
 
-Formatting and document helpers run locally. Translation and dictionary requests are explicit online actions. Yoz has no analytics, typed-text log, or clipboard monitoring. Web editors that ignore direct replacement use one
+Formatting and document helpers run locally. While enabled, typing pauses automatically prepare translation and dictionary results online. Yoz has no analytics, typed-text log, or clipboard monitoring. Web editors that ignore direct replacement use one
 normal paste; Yoz restores your previous clipboard unless you copied something
 newer. Copy result in the Playground intentionally updates your clipboard.
 
@@ -51,10 +51,10 @@ Hover over the notch to open Format, Translate, Izohchi and Document tools.
 The pencil opens manual input. Refresh captures the active editable draft again.
 Translate supports Uzbek-English, Uzbek-Russian and Uzbek Latin-Cyrillic in both
  directions. Configure your HTTPS service URL and API key in Settings, or import
-.env. Keys are saved in Keychain. Requests only run when you click Translate.
+.env. Keys are saved in Keychain. After a typing pause, all tabs prepare results automatically; hover to review them.
 HTTP requires an explicit opt-in and exposes your key/text to the network.
 Izohchi uses free public Izoh.uz entries. Select a word or enter a short phrase,
-then Find meaning. The preview shows two meanings, one example each; More opens
+then pause and hover. The preview shows two meanings, one example each; More opens
 all meanings in a larger notch. Savodxon is linked for manual browsing.
 Document shows counts and read time, and previews spacing cleanup locally.
 Copy is always explicit. Applying a result verifies the original full draft has

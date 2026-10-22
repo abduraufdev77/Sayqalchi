@@ -7,12 +7,15 @@
 <key>CFBundleExecutable</key><string>Yoz</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleIconFile</key><string>Yoz.icns</string>
-<key>CFBundleShortVersionString</key><string>0.4.2</string>
-<key>CFBundleVersion</key><string>7</string>
+<key>CFBundleShortVersionString</key><string>0.5.0</string>
+<key>CFBundleVersion</key><string>8</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
+<!-- The app itself requires HTTPS unless the user explicitly enables HTTP
+     for their own translation service. Dictionary requests always use HTTPS. -->
+<key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoads</key><true/></dict>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
-<key>NSAccessibilityUsageDescription</key><string>Yoz reads the entire focused draft and converts all its paragraphs to the new Uzbek letters when you accept a suggestion. Text stays on your Mac.</string>
+<key>NSAccessibilityUsageDescription</key><string>Yoz reads the entire focused draft and converts all its paragraphs to the new Uzbek letters when you accept a suggestion. Formatting stays on your Mac. Translation and dictionary requests send only text you explicitly choose to their configured sources.</string>
 <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
 <key>NSHumanReadableCopyright</key><string>Yoz 2026. Independent app inspired by Echo. Not affiliated with VoiceLab.</string>
 </dict></plist>

@@ -39,7 +39,7 @@ struct ActionButton: View {
             HStack(spacing: 8) { Text(title); if let icon { Image(systemName: icon).font(.system(size: 12, weight: .semibold)) } }
                 .font(Design.font(13, .semibold)).padding(.horizontal, 19).frame(height: 40)
                 .foregroundStyle(textColor).background(color, in: Capsule())
-        }.buttonStyle(.plain)
+        }.buttonStyle(PointerButtonStyle())
     }
 }
 
@@ -62,5 +62,27 @@ struct SectionHeading: View {
             Text(title).font(Design.font(38)).tracking(-1.3)
             Text(subtitle).font(Design.font(14)).foregroundStyle(Design.muted).lineSpacing(4)
         }
+    }
+}
+
+/// Balance cursor pushes even when an animated tab removes its hovered control.
+struct PointerCursor: ViewModifier {
+    @State private var inside = false
+    func body(content: Content) -> some View {
+        content.onHover { hovering in
+            guard hovering != inside else { return }
+            inside = hovering
+            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }.onDisappear { if inside { NSCursor.pop(); inside = false } }
+    }
+}
+extension View {
+    func pointerCursor() -> some View { modifier(PointerCursor()) }
+}
+struct PointerButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.7 : enabled ? 1 : 0.45)
+            .contentShape(Rectangle()).pointerCursor()
     }
 }

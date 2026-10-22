@@ -15,7 +15,7 @@ struct RootView: View {
                     Circle().fill(model.enabled && model.accessibilityGranted ? Design.green : Design.orange).frame(width: 6, height: 6)
                     Text(model.status).font(Design.font(11, .medium))
                     Button { model.enabled.toggle() } label: { Image(systemName: model.enabled ? "pause.fill" : "play.fill").font(.system(size: 10)).frame(width: 27, height: 27).background(Design.line.opacity(0.6), in: Circle()) }
-                        .buttonStyle(.plain).help(model.enabled ? "Pause suggestions" : "Resume suggestions")
+                        .buttonStyle(PointerButtonStyle()).help(model.enabled ? "Pause suggestions" : "Resume suggestions")
                 }.padding(.horizontal, 28).frame(height: 60)
                 Rectangle().fill(Design.line).frame(height: 1)
                 ScrollView {
@@ -46,15 +46,15 @@ struct RootView: View {
                     }.padding(.horizontal, 12).frame(height: 42)
                         .foregroundStyle(model.section == section ? Design.ink : Design.muted)
                         .background(model.section == section ? Color.white : Color.clear, in: RoundedRectangle(cornerRadius: 9))
-                }.buttonStyle(.plain).padding(.bottom, 4)
+                }.buttonStyle(PointerButtonStyle()).padding(.bottom, 4)
             }
             Spacer()
             VStack(alignment: .leading, spacing: 11) {
-                HStack { Image(systemName: "lock.shield"); Text("Only on your Mac").font(Design.font(11, .medium)) }
-                Text("Your typing stays yours.\nNo account. No cloud.").font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(4)
+                HStack { Image(systemName: "lock.shield"); Text("Your writing, your choice").font(Design.font(11, .medium)) }
+                Text("Local formatting.\nOnline tools only on request.").font(Design.font(11)).foregroundStyle(Design.muted).lineSpacing(4)
             }.padding(.bottom, 23)
             Rectangle().fill(Design.line).frame(height: 1)
-            HStack { Text("YOZ FOR MAC").tracking(1.5); Spacer(); Text("v0.4.2") }.font(Design.font(9, .medium)).foregroundStyle(Design.muted).padding(.top, 18)
+            HStack { Text("YOZ FOR MAC").tracking(1.5); Spacer(); Text("v0.5.0") }.font(Design.font(9, .medium)).foregroundStyle(Design.muted).padding(.top, 18)
         }.padding(.horizontal, 18).padding(.bottom, 25).background(Color(hex: 0xEFEFEA))
     }
 }
@@ -74,7 +74,7 @@ struct OverviewView: View {
                     Text("Write freely. Pause. Review all your new letters\nat the notch, then click Use to replace the text.").font(Design.font(14)).foregroundStyle(Design.muted).lineSpacing(5)
                     HStack(spacing: 10) {
                         ActionButton(title: "Try the Playground", icon: "arrow.up.right") { model.section = .playground }
-                        Button("Preview the notch") { model.previewBar?() }.font(Design.font(12, .medium)).buttonStyle(.plain).padding(.leading, 6)
+                        Button("Writing tools") { model.openAssistant?() }.font(Design.font(12, .medium)).buttonStyle(PointerButtonStyle()).padding(.leading, 6)
                     }.padding(.top, 4)
                 }
                 Spacer(minLength: 0)
@@ -114,7 +114,7 @@ struct DemoSurface: View {
         VStack(spacing: 0) {
             HStack(spacing: 7) {
                 ForEach(["Telegram", "Mail", "Browser"], id: \.self) { app in
-                    Button { scenario = app } label: { Text(app).font(Design.font(11, .medium)).padding(.horizontal, 15).frame(height: 28).background(scenario == app ? .white : Color.clear, in: Capsule()).foregroundStyle(scenario == app ? Design.ink : Design.muted) }.buttonStyle(.plain)
+                    Button { scenario = app } label: { Text(app).font(Design.font(11, .medium)).padding(.horizontal, 15).frame(height: 28).background(scenario == app ? .white : Color.clear, in: Capsule()).foregroundStyle(scenario == app ? Design.ink : Design.muted) }.buttonStyle(PointerButtonStyle())
                 }
                 Spacer()
                 Text("LIVE PREVIEW").font(Design.font(8, .semibold)).tracking(1.5).foregroundStyle(Design.muted)
@@ -156,9 +156,9 @@ struct SuggestionBar: View {
                 Text(preview ? "\(app) · preview" : app).font(Design.font(9)).foregroundStyle(.white.opacity(0.45))
             }
             Spacer(minLength: 4)
-            Button(action: accept) { Text("Use  ⌥ ↵").font(Design.font(11, .semibold)).padding(.horizontal, 12).padding(.vertical, 8).foregroundStyle(.black).background(Design.cyan, in: Capsule()) }.buttonStyle(.plain).help("Use suggested text · Option Return")
+            Button(action: accept) { Text("Use  ⌥ ↵").font(Design.font(11, .semibold)).padding(.horizontal, 12).padding(.vertical, 8).foregroundStyle(.black).background(Design.cyan, in: Capsule()) }.buttonStyle(PointerButtonStyle()).help("Use suggested text · Option Return")
             if !preview {
-                Button(action: dismiss) { Image(systemName: "xmark").font(.system(size: 10)).foregroundStyle(.white.opacity(0.5)).frame(width: 22, height: 30) }.buttonStyle(.plain).help("Dismiss · Escape")
+                Button(action: dismiss) { Image(systemName: "xmark").font(.system(size: 10)).foregroundStyle(.white.opacity(0.5)).frame(width: 22, height: 30) }.buttonStyle(PointerButtonStyle()).help("Dismiss · Escape")
             }
         }.padding(.horizontal, 17).frame(height: 76).background(Design.ink, in: RoundedRectangle(cornerRadius: 21))
             .overlay(RoundedRectangle(cornerRadius: 21).stroke(.white.opacity(0.1)))
@@ -172,7 +172,7 @@ struct PlaygroundView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 25) {
             SectionHeading(eyebrow: "A space to experiment", title: "Meet your new letters.", subtitle: "Type or paste Uzbek Latin text. See every change as you write.")
-            HStack { Text("YOUR TEXT").tracking(1.5); Spacer(); Button("Clear") { text = "" }.buttonStyle(.plain).foregroundStyle(Design.muted) }.font(Design.font(10, .semibold))
+            HStack { Text("YOUR TEXT").tracking(1.5); Spacer(); Button("Clear") { text = "" }.buttonStyle(PointerButtonStyle()).foregroundStyle(Design.muted) }.font(Design.font(10, .semibold))
             TextEditor(text: $text).font(Design.font(23)).scrollContentBackground(.hidden).padding(16).frame(height: 160).background(.white, in: RoundedRectangle(cornerRadius: 15)).overlay(RoundedRectangle(cornerRadius: 15).stroke(Design.line)).accessibilityLabel("Text to transliterate")
             HStack { Image(systemName: "arrow.down").foregroundStyle(Design.orange); Text("NEW UZBEK ALPHABET").font(Design.font(10, .semibold)).tracking(1.5); Spacer(); Text("\(text.count) characters").font(Design.font(11)).foregroundStyle(Design.muted) }
             Text(result.isEmpty ? "Your new letters will appear here…" : result).font(Design.font(25)).lineSpacing(7).foregroundStyle(result.isEmpty ? Design.muted : Design.ink).textSelection(.enabled).frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading).padding(23).background(Design.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 15))
@@ -250,7 +250,7 @@ struct SettingsView: View {
                 HStack { Text("Dismiss suggestion"); Spacer(); Text("Escape").font(.system(size: 12, design: .monospaced)).foregroundStyle(Design.muted) }
             }.padding(22).background(.white, in: RoundedRectangle(cornerRadius: 15))
             VStack(alignment: .leading, spacing: 13) {
-                HStack { Text("App exclusions").font(Design.font(17, .medium)); Spacer(); Button("Refresh") { refreshApps() }.buttonStyle(.plain).font(Design.font(12)).foregroundStyle(Design.muted) }
+                HStack { Text("App exclusions").font(Design.font(17, .medium)); Spacer(); Button("Refresh") { refreshApps() }.buttonStyle(PointerButtonStyle()).font(Design.font(12)).foregroundStyle(Design.muted) }
                 Text("Turn an app off to stop suggestions there. Password fields and Terminal are skipped automatically.").font(Design.font(12)).foregroundStyle(Design.muted)
                 ForEach(apps, id: \.processIdentifier) { app in
                     if let id = app.bundleIdentifier {
@@ -269,6 +269,7 @@ struct SettingsView: View {
                 Spacer()
                 ActionButton(title: "Open settings", icon: "arrow.up.right") { model.openPermissions() }
             }
+            TranslationSettingsView(settings: model.assistant.settings)
             if !model.lastNotice.isEmpty { Text(model.lastNotice).font(Design.font(12)).foregroundStyle(Design.muted) }
         }.onAppear { refreshApps() }
     }

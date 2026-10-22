@@ -4,21 +4,66 @@
 
 # Yoz
 
-### Your words. A new alphabet.
+### Your everyday writing companion.
 
-Write Uzbek in the apps you already use.<br>
-Review the new letters in your Mac’s notch. Keep writing with one shortcut.
+Format. Translate. Understand. Keep writing.<br>
+A native assistant that grows out of your Mac’s notch.
 
-[![Version](https://img.shields.io/badge/version-0.4.2-00DDF1?style=flat-square)](packaging/Info.plist)
+[![Version](https://img.shields.io/badge/version-0.5.0_preview-00DDF1?style=flat-square)](packaging/Info.plist)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-1B1D1B?style=flat-square&logo=apple&logoColor=white)](#install)
 [![Apple silicon](https://img.shields.io/badge/build-Apple_silicon-91EF57?style=flat-square)](#install)
-[![Local processing](https://img.shields.io/badge/processing-on_device-FF743D?style=flat-square)](#your-data)
+[![Explicit online tools](https://img.shields.io/badge/online_tools-on_request-FF743D?style=flat-square)](#your-data)
 
 **[Install](#install) · [Shortcuts](#shortcuts) · [The alphabet](#the-alphabet) · [Your data](#your-data) · [Development](#development)**
 
 <img src="docs/notch-preview.png" alt="Yoz’s expanded notch: a fixed Ö logo, a waveform, inline orange letter changes, and a combined Option Return button" width="560">
 
 </div>
+
+> **Stable download:** [Yoz 0.4.2](https://github.com/abduraufdev77/yoz/releases/tag/v0.4.2) includes the whole-draft formatter. This branch contains the **0.5.0 preview**, adding the writing assistant described below.
+
+## One notch. Four writing tools.
+
+<div align="center">
+<img src="docs/assistant-preview.png" alt="Yoz 0.5 preview with animated tool tabs and separate source and target language badges" width="560">
+</div>
+
+Hover over Ö to reveal a rounded tool strip. The logo and waveform keep their
+positions while the black island expands below the camera. Choose a tool, review
+its result, and copy it or replace the captured draft with **⌥ ↵**.
+
+| Tool | What it does | Processing |
+| --- | --- | --- |
+| **Format** | Convert the complete draft to the new Uzbek alphabet, with orange inline changes. | Local |
+| **Translate** | Uzbek ↔ English, Uzbek ↔ Russian, Uzbek Latin ↔ Cyrillic. Stream a result from your configured translation service. | Explicit request |
+| **Izohchi** | Look up a selected word or short phrase. Two meanings and one example per meaning in the preview; **More** opens all meanings in a larger notch. | Izoh.uz, explicit request |
+| **Document** | Count words, characters and text lines, estimate reading time, and preview spacing cleanup while keeping paragraph breaks and indentation. | Local |
+
+Use the pencil to enter or paste text directly. Manual input results can be copied;
+replacing another app’s draft requires a fresh captured editor. **Refresh** reads
+that editor again. Translation and lookup never run just because you type or hover.
+
+### Connect your translation service
+
+Open **Settings → Translation service** and enter the base URL and API key, or
+import a local `.env` file using the shape in [`.env.example`](.env.example).
+The key is stored in macOS Keychain and is never shipped in the binary.
+
+The client uses `POST /api/translate/text`, `X-API-Token`, JSON fields
+`sourceLanguage`, `targetLanguage`, `text`, and an NDJSON stream of `delta` events
+ending in `done`. Choose source and target using the language badges; each badge opens a small language popover, and the middle arrow swaps the pair. Drafts over 20,000 Unicode scalars are rejected without truncation.
+Partial output cannot be copied or applied. Cancel, changing direction, and editing
+the input invalidate the pending request.
+
+HTTPS is required by default. A separate opt-in permits unencrypted HTTP for a
+user-configured development service; it exposes both the API key and submitted
+text to the network. There is no automatic HTTPS downgrade or certificate bypass.
+
+Izohchi fetches public definitions from **[Izoh.uz](https://izoh.uz/)** without an
+account, keeps at most 40 lookups in memory for ten minutes, and links to the source.
+**[Savodxon](https://savodxon.uz/izoh)** is available as a browser link; it currently
+blocks automated requests, so the app does not claim to integrate its private API.
+Missing definitions and unsupported phrases produce a clear no-result message.
 
 ## Write once. Review the whole draft.
 
@@ -71,7 +116,13 @@ or focus changes before acceptance, Yoz waits for a fresh suggestion.
 **Requirements:** macOS 13 or later. Current packaged builds target Apple silicon.
 Building from source needs Xcode Command Line Tools with Swift 5.9 or later.
 
-### Build the app
+### Download the stable release
+
+Download [Yoz-0.4.2-arm64.dmg](https://github.com/abduraufdev77/yoz/releases/download/v0.4.2/Yoz-0.4.2-arm64.dmg)
+and the accompanying [SHA-256 checksum](https://github.com/abduraufdev77/yoz/releases/download/v0.4.2/SHA256SUMS.txt).
+The new assistant is in the 0.5.0 source preview, not the stable 0.4.2 DMG.
+
+### Build the preview app
 
 ```bash
 git clone https://github.com/abduraufdev77/yoz.git
@@ -91,7 +142,7 @@ preserve your preferences. Closing the main window keeps Yoz available in the
 menu bar.
 
 Current builds are signed ad hoc for local development and are not notarized.
-Public binary distribution requires Developer ID signing and Apple notarization.
+macOS may require **System Settings → Privacy & Security → Open Anyway**. Developer ID signing and notarization remain future distribution work.
 
 ### Package an installer
 
@@ -99,7 +150,7 @@ Public binary distribution requires Developer ID signing and Apple notarization.
 ./scripts/package-dmg.sh
 ```
 
-This creates `dist/Yoz-0.4.2-arm64.dmg` and `dist/SHA256SUMS.txt`. The script reads
+This creates `dist/Yoz-0.5.0-arm64.dmg` and `dist/SHA256SUMS.txt`. The script reads
 the version from `packaging/Info.plist`.
 
 To update, quit Yoz, replace the installed app, and reopen it. A rebuilt or moved
@@ -112,7 +163,8 @@ app may need its Accessibility grant renewed.
 | Enable or pause Yoz | Double-press **Right Shift** |
 | Enable or pause from the menu bar | Double-click **ö** |
 | Accept the complete suggestion | **Option + Return**, or click **⌥ ↵** |
-| Dismiss the suggestion | **Escape** |
+| Dismiss the suggestion or assistant | **Escape** |
+| Open writing tools | Hover the notch, or choose **Writing tools** in the ö menu |
 | Open Yoz, preview the notch, or quit | Click **ö** to open its menu |
 | Open the notch’s menu | Right-click the notch |
 
@@ -157,8 +209,14 @@ without Accessibility permission.
 
 ## Your data
 
-**Yoz’s conversion engine runs on your Mac.** The app has no network client,
-account, analytics, or typed-text history.
+**Formatting and document tools run on your Mac.** Yoz has no analytics or
+persistent typed-text history. It keeps the captured draft and result in memory
+while the assistant is open and clears them when you close it.
+
+- **Translation:** clicking Translate sends the captured or manually entered text to your configured service. The provider’s own retention policy applies.
+- **Izohchi:** clicking Find meaning sends only the word or short phrase to Izoh.uz. A bounded temporary memory cache avoids repeat requests.
+- API keys live in Keychain; the URL and HTTP preference live in UserDefaults. `.env` files are ignored by Git and never bundled.
+- Network requests use an ephemeral session without persistent cookies or a disk cache. Credentials are not forwarded across origins during redirects.
 
 - It reads the **focused editable field** through macOS Accessibility, rather than collecting characters from keyboard events.
 - Password fields, protected content, Terminal, and common password managers are skipped. macOS Secure Input pauses detection and replacement.
@@ -168,7 +226,7 @@ account, analytics, or typed-text history.
 Direct replacement uses Accessibility. Some web editors ignore that API; Yoz
 then uses one standard paste in the verified editor. It preserves the previous
 clipboard items and restores them afterward unless something newer was copied.
-The Playground’s **Copy** action intentionally updates the clipboard.
+Explicit **Copy** actions intentionally update the clipboard. Captured assistant results are revalidated against the complete original draft before replacement.
 
 ### Background work
 
@@ -215,13 +273,13 @@ preview. Pause in the intended field to get a fresh one. Fields larger than
 Cross-app suggestions cover the **whole focused editable field**, including text
 after the cursor. A selection does not restrict that scope. Copy a smaller
 passage into the Playground when you want to convert it separately. Cyrillic
-conversion is not part of this release.
+conversion is available through the configured translation service in the 0.5.0 preview; it is not included in the stable 0.4.2 formatter.
 
 </details>
 
 ## Development
 
-Yoz uses **SwiftUI + AppKit**, with no external Swift package dependencies.
+Yoz uses **SwiftUI + AppKit**. **SwiftSoup** parses dictionary HTML without executing scripts; its MIT notice is bundled with the app. `Package.resolved` pins the dependency.
 
 ```bash
 swift test                  # Run the automated suite
@@ -229,9 +287,13 @@ swift test                  # Run the automated suite
 ./scripts/package-dmg.sh    # Create a versioned DMG and checksum
 ```
 
-The **27 automated tests** cover alphabet rules, case, protected addresses,
-Unicode offsets, whole-field scope, nested editors, paragraph boundaries,
-double-press timing, and notch geometry across displays and backing scales.
+The **35 automated tests** cover alphabet rules, Unicode offsets, whole-field
+scope, nested editors, paragraph boundaries, double-press timing, notch geometry,
+the six translation directions and HTTP contract, incomplete/error streams,
+dictionary parsing and preview limits, URL validation, and document cleanup.
+Mock transport tests do not require credentials or internet access.
+
+See [0.5.0 validation notes](docs/assistant-validation.md) for live checks and known limits.
 
 <details>
 <summary><strong>Project structure</strong></summary>
@@ -239,9 +301,11 @@ double-press timing, and notch geometry across displays and backing scales.
 ```text
 Sources/
   TransliterationCore/       Conversion, editor scope, input timing, notch geometry
+  AssistantCore/             Translation transport, dictionary parser, document tools
   Yoz/                       Native app, Accessibility monitor, notch, settings
 Tests/
   TransliterationCoreTests/   Conversion and interaction regression tests
+  AssistantCoreTests/         Network contract, parser, and document tests
 scripts/                     Build, package, icons, and a local editor fixture
 packaging/                   App metadata and icons
 docs/                        Screenshots, capture geometry, and validation notes

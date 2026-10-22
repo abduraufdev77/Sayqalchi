@@ -252,19 +252,49 @@ final class TypingMonitor {
               let current = readSnapshot(pid: old.pid), CFEqual(current.element, old.element),
               current.caret.location == old.caret.location, current.caret.length == old.caret.length,
               current.suggestion == old.suggestion else { status("Text or focus changed; waiting for a fresh suggestion"); clear(); return }
+        apply(current)
+    }
+
+    @discardableResult
+    private func apply(_ current: Snapshot) -> Bool {
+        guard let model else { return false }
         var range = CFRange(location: current.suggestion.range.location, length: current.suggestion.range.length)
         guard let axRange = AXValueCreate(.cfRange, &range),
               AXUIElementSetAttributeValue(current.element, kAXSelectedTextRangeAttribute as CFString, axRange) == .success,
               let actual = selection(current.element), actual.location == range.location, actual.length == range.length else {
             restore(current.caret, in: current.element)
             model.lastNotice = "This field cannot select text for replacement. Use the Playground instead."
-            dismiss(); return
+            dismiss(); return false
         }
         applying = true
         AXUIElementSetAttributeValue(current.element, kAXSelectedTextAttribute as CFString, current.suggestion.replacement as CFString)
         hideSuggestion()
         confirmReplacement(current, stage: 0)
+        return true
     }
+    /// Capture only an enabled, allowed editable field. Never read protected apps.
+    func captureDraft() -> Input? {
+        guard let model, model.enabled, AXIsProcessTrusted(), !IsSecureEventInputEnabled(),
+              let front = NSWorkspace.shared.frontmostApplication,
+              front.processIdentifier != getpid(),
+              !model.excludedApps.contains(front.bundleIdentifier ?? "") else { return nil }
+        let id = front.bundleIdentifier?.lowercased() ?? ""
+        guard !["terminal", "iterm", "1password", "bitwarden", "keychain", "lastpass"].contains(where: id.contains) else { return nil }
+        return readInput(pid: front.processIdentifier)
+    }
+
+    func acceptAssistant(_ old: Input, replacement: String) -> Bool {
+        guard !applying, !replacement.isEmpty, model?.enabled == true, !IsSecureEventInputEnabled(),
+              let current = captureDraft(), current.pid == old.pid, CFEqual(current.element, old.element),
+              current.text == old.text else {
+            model?.lastNotice = "The draft or focus changed. Refresh before applying."; return false
+        }
+        let suggestion = WordSuggestion(original: current.text, replacement: replacement,
+                                        range: NSRange(location: 0, length: (current.text as NSString).length), atBoundary: true)
+        return apply(Snapshot(element: current.element, pid: current.pid, caret: current.caret,
+                       suggestion: suggestion, replacementCaret: (replacement as NSString).length))
+    }
+
     private func confirmReplacement(_ current: Snapshot, stage: Int) {
         DispatchQueue.main.asyncAfter(deadline: .now() + (stage == 0 ? 0.18 : 0.35)) { [weak self] in
             guard let self, let model = self.model else { return }
@@ -399,6 +429,11 @@ final class TypingMonitor {
 
             let key = event.getIntegerValueField(.keyboardEventKeycode)
             let modifiers = event.flags.intersection([.maskAlternate, .maskCommand, .maskControl, .maskShift])
+            if monitor.model?.assistantActive == true {
+                if key == 36 && modifiers == .maskAlternate { DispatchQueue.main.async { monitor.model?.assistantAccept?() }; return nil }
+                if key == 53 && modifiers.isEmpty { DispatchQueue.main.async { monitor.model?.assistantDismiss?() }; return nil }
+                return Unmanaged.passUnretained(event)
+            }
             if monitor.model?.suggestion != nil, key == 36 && modifiers == .maskAlternate { DispatchQueue.main.async { monitor.accept() }; return nil }
             if monitor.model?.suggestion != nil, key == 53 && modifiers.isEmpty { DispatchQueue.main.async { monitor.dismiss() }; return nil }
             DispatchQueue.main.async { monitor.inputActivity() }

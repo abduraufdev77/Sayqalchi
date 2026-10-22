@@ -1,4 +1,4 @@
-Yoz 0.4.2 for Apple silicon Macs · macOS 13+
+Yoz 0.5.0 preview for Apple silicon Macs · macOS 13+
 
 1. Drag Yoz into Applications and open it.
 2. Click Enable Accessibility. In System Settings > Privacy & Security >
@@ -27,13 +27,12 @@ even with a paragraph selected.
 The entire field is supported up to 200,000 UTF-16 units. Longer fields are not
 silently truncated: use the Playground for a smaller passage.
 
-This is a local development build signed ad hoc, not a notarized public release.
+This preview is signed ad hoc and is not Apple-notarized.
 Do not disable Gatekeeper. If macOS blocks it, use the normal Privacy & Security
 Open Anyway flow for your own local build, or build from source on this Mac.
 
-The v0.4.2 engine accepts Uzbek Latin and maps o' > ö, g' > ğ, sh > ş, ch > ç.
-It preserves case and ng. It does not translate languages, correct spelling, or
-convert Cyrillic. Other-language sh/ch words can also change; use suggestions
+The formatting engine accepts Uzbek Latin and maps o' > ö, g' > ğ, sh > ş, ch > ç.
+It preserves case and ng. Formatting does not translate languages or correct spelling. Use the new Translate tool for language and Cyrillic conversion. Other-language sh/ch words can also change; use suggestions
 or exclude those apps. The alphabet comes from the PDF you supplied.
 
 Cross-app support requires editable macOS Accessibility text fields with usable
@@ -41,9 +40,22 @@ text and selection APIs. Custom editors, remote desktops, and some browser
 editors may not expose them. Such fields are skipped; use the Playground to copy
 the transliterated result. Password fields and Terminal are skipped.
 
-Everything runs locally. Yoz has no account, server, analytics, typed-text log,
-or clipboard monitoring. Web editors that ignore direct replacement use one
+Formatting and document helpers run locally. Translation and dictionary requests are explicit online actions. Yoz has no analytics, typed-text log, or clipboard monitoring. Web editors that ignore direct replacement use one
 normal paste; Yoz restores your previous clipboard unless you copied something
 newer. Copy result in the Playground intentionally updates your clipboard.
 
 Independent app inspired by Echo. Not affiliated with VoiceLab.
+
+New in 0.5.0 preview:
+Hover over the notch to open Format, Translate, Izohchi and Document tools.
+The pencil opens manual input. Refresh captures the active editable draft again.
+Translate supports Uzbek-English, Uzbek-Russian and Uzbek Latin-Cyrillic in both
+ directions. Configure your HTTPS service URL and API key in Settings, or import
+.env. Keys are saved in Keychain. Requests only run when you click Translate.
+HTTP requires an explicit opt-in and exposes your key/text to the network.
+Izohchi uses free public Izoh.uz entries. Select a word or enter a short phrase,
+then Find meaning. The preview shows two meanings, one example each; More opens
+all meanings in a larger notch. Savodxon is linked for manual browsing.
+Document shows counts and read time, and previews spacing cleanup locally.
+Copy is always explicit. Applying a result verifies the original full draft has
+not changed; pasted manual text can be copied but cannot overwrite another app.

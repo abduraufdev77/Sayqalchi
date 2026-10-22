@@ -9,5 +9,5 @@ ditto dist/Yoz.app "$YOZ_STAGE/Yoz.app"
 ln -s /Applications "$YOZ_STAGE/Applications"
 cp docs/INSTALL.txt "$YOZ_STAGE/Read me.txt"
 hdiutil create -volname "Yoz $YOZ_VERSION" -srcfolder "$YOZ_STAGE" -ov -format UDZO "dist/Yoz-$YOZ_VERSION-arm64.dmg"
-LC_ALL=C LANG=C shasum -a 256 "dist/Yoz-$YOZ_VERSION-arm64.dmg" > dist/SHA256SUMS.txt
+(cd dist && LC_ALL=C LANG=C shasum -a 256 "Yoz-$YOZ_VERSION-arm64.dmg" > SHA256SUMS.txt)
 echo "Packaged: $PWD/dist/Yoz-$YOZ_VERSION-arm64.dmg"

@@ -38,6 +38,8 @@ final class NotchPresentation: ObservableObject {
     @Published var app = ""
     @Published var replacement = ""
     @Published var highlighted = Text("")
+    var assistant: AssistantModel?
+    var hover: (Bool) -> Void = { _ in }
     var accept: () -> Void = {}
     var dismiss: () -> Void = {}
     var open: () -> Void = {}
@@ -64,7 +66,12 @@ struct NotchRootView: View {
     @ObservedObject var state: NotchPresentation
     var body: some View {
         ZStack(alignment: .top) {
-            if state.result {
+            if let assistant = state.assistant, assistant.visible {
+                AssistantNotchView(assistant: assistant)
+                    .frame(width: state.contentWidth, height: state.contentHeight)
+                    .padding(.top, state.safeTop + 7)
+                    .transition(.opacity)
+            } else if state.result {
                 NotchSuggestionView(state: state)
                     .frame(width: state.contentWidth, height: state.contentHeight)
                     .transaction { $0.animation = nil }
@@ -86,6 +93,7 @@ struct NotchRootView: View {
                 .offset(x: state.contentOffsetX)
                 .transaction { $0.animation = nil }
         }
+        .onHover(perform: state.hover)
         .contextMenu {
             Button("Open Yoz", action: state.open)
             Button("Pause Yoz", action: state.toggle)
@@ -105,7 +113,7 @@ struct NotchSuggestionView: View {
                 Button(action: state.dismiss) {
                     Image(systemName: "xmark").font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.6)).frame(width: 24, height: 22)
-                }.buttonStyle(.plain).accessibilityLabel("Dismiss suggestion").help("Dismiss · Escape")
+                }.buttonStyle(PointerButtonStyle()).accessibilityLabel("Dismiss suggestion").help("Dismiss · Escape")
             }.padding(.bottom, 7)
             ScrollView(.vertical) {
                 state.highlighted.font(Design.font(14, .medium)).lineSpacing(2)
@@ -117,7 +125,7 @@ struct NotchSuggestionView: View {
                 Spacer()
                 if state.preview { keycaps }
                 else {
-                    Button(action: state.accept) { keycaps }.buttonStyle(.plain)
+                    Button(action: state.accept) { keycaps }.buttonStyle(PointerButtonStyle())
                         .accessibilityLabel("Use suggested text").help("Apply entire draft · Option Return")
                 }
             }.padding(.top, 8).padding(.bottom, 10)

@@ -23,7 +23,12 @@ final class AppModel: ObservableObject {
     @Published var excludedApps: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "excludedApps") ?? []) {
         didSet { UserDefaults.standard.set(Array(excludedApps).sorted(), forKey: "excludedApps") }
     }
+    let assistant = AssistantModel()
+    var assistantActive = false
+    var assistantAccept: (() -> Void)?
+    var assistantDismiss: (() -> Void)?
     var monitor: TypingMonitor?
+    var openAssistant: (() -> Void)?
     var previewBar: (() -> Void)?
     var status: String { !enabled ? "Paused" : accessibilityGranted ? "Ready to write" : "Setup needed" }
 

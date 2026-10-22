@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import Combine
 import TransliterationCore
+import AssistantCore
 
 @main
 enum YozMain {
@@ -16,7 +17,8 @@ enum YozMain {
 }
 
 final class SuggestionPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
+    var allowsEditing = false
+    override var canBecomeKey: Bool { allowsEditing }
     override var canBecomeMain: Bool { false }
     // AppKit otherwise clamps the window below the menu bar, even when the
     // requested frame is at screen.frame.maxY. Bypass that native frame clamp.
@@ -35,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var menuClick: DispatchWorkItem?
     private var previewing = false
     private var previewToken: UUID?
+    private var hoverWork: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Design.registerFonts()
@@ -58,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Open Yoz", action: #selector(showWindow), keyEquivalent: "")
         menu.addItem(withTitle: "Pause / resume", action: #selector(toggleEnabled), keyEquivalent: "")
+        menu.addItem(withTitle: "Writing tools", action: #selector(openAssistant), keyEquivalent: "")
         menu.addItem(withTitle: "Preview notch", action: #selector(preview), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Yoz", action: #selector(quit), keyEquivalent: "q")
@@ -71,6 +75,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             self?.statusItem.button?.toolTip = enabled ? "Yoz on · double-click to pause" : "Yoz paused · double-click to enable"
         }.store(in: &subscriptions)
         model.monitor = TypingMonitor(model: model)
+        let assistant = model.assistant
+        assistant.app = model
+        assistant.resize = { [weak self] in self?.updateAssistant() }
+        assistant.requestEditing = { [weak self] in
+            self?.panel.allowsEditing = true
+            self?.panel.makeKeyAndOrderFront(nil)
+        }
+        assistant.returnToEditor = { [weak self] input, text in
+            guard let self else { return }
+            self.panel.allowsEditing = false; self.panel.resignKey()
+            let perform = { [weak self] in
+                guard let self else { return }
+                if self.model.monitor?.acceptAssistant(input, replacement: text) == true { self.model.assistant.close() }
+                else { self.model.assistant.error = "The draft or focus changed. Click your original editor and refresh before applying." }
+            }
+            if NSWorkspace.shared.frontmostApplication?.processIdentifier != input.pid {
+                NSRunningApplication(processIdentifier: input.pid)?.activate(options: [])
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: perform)
+            } else { perform() }
+        }
+        model.assistantAccept = { [weak assistant] in assistant?.apply() }
+        model.assistantDismiss = { [weak assistant] in assistant?.close() }
+        assistant.objectWillChange.debounce(for: .milliseconds(16), scheduler: RunLoop.main).sink { [weak self] in self?.updateAssistant() }.store(in: &subscriptions)
         if CommandLine.arguments.contains("--diagnostics") {
             // Development-only output: status/app names, never the user's text.
             model.$liveStatus.removeDuplicates().sink { status in
@@ -78,11 +105,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 fflush(stdout)
             }.store(in: &subscriptions)
         }
+        model.openAssistant = { [weak self] in self?.openAssistant() }
         model.previewBar = { [weak self] in self?.preview() }
         Publishers.CombineLatest4(model.$suggestion, model.$isTyping, model.$enabled, model.$accessibilityGranted)
             .debounce(for: .milliseconds(12), scheduler: RunLoop.main).sink { [weak self] suggestion, typing, enabled, trusted in
             guard let self, !self.previewing else { return }
-            guard enabled && trusted else { self.panel.orderOut(nil); return }
+            guard enabled && trusted else {
+                if self.model.assistant.visible { self.model.assistant.close() }
+                self.panel.orderOut(nil); return
+            }
+            if self.model.assistant.visible { return }
             if let suggestion, !typing {
                 self.showBar(original: suggestion.original, replacement: suggestion.replacement, preview: false)
             } else { self.showActivity(typing: typing) }
@@ -117,6 +149,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in self?.showActivity(typing: false) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in self?.capturePanel(to: directory + "/notch-idle.png") }
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) { [weak self] in self?.endPreview() }
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--assistant-gallery"), CommandLine.arguments.count > i + 1 {
+            let directory = CommandLine.arguments[i + 1]
+            previewing = true
+            let assistant = model.assistant
+            assistant.open(capture: false)
+            assistant.input = "O'zbekcha yozish juda oson.\n\nGo'zal shaharlar va yangi g'oyalar."
+            assistant.sourceName = "SAMPLE DRAFT"
+            for (delay, action) in [(1.0, "format"), (2.5, "translate"), (4.0, "dictionary"), (5.5, "details"), (7.0, "document")] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                    guard let self else { return }
+                    switch action {
+                    case "format": assistant.choose(.format); assistant.run()
+                    case "translate": assistant.choose(.translate)
+                    case "dictionary":
+                        assistant.choose(.dictionary)
+                        if let html = try? String(contentsOfFile: directory + "/dictionary-fixture.html", encoding: .utf8) {
+                            assistant.entry = try? DictionaryService.parse(html, source: URL(string: "https://izoh.uz/word/jamoa")!)
+                        }
+                    case "details": assistant.details = true
+                    default: assistant.choose(.document)
+                    }
+                    self.updateAssistant()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { self.capturePanel(to: directory + "/assistant-" + action + ".png") }
+                }
+            }
+        }
+        if CommandLine.arguments.contains("--assistant-gallery") && !CommandLine.arguments.contains("--hold-gallery") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 9) { [weak self] in
+                self?.previewing = false; self?.model.assistant.close()
+            }
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--assistant-live-check"), CommandLine.arguments.count > i + 1 {
+            let path = CommandLine.arguments[i + 1]
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                var report: [String: Any] = [:]
+                do {
+                    let entry = try await DictionaryService.lookup("jamoa", session: .shared)
+                    report["dictionaryMeanings"] = entry.meanings.count
+                    report["dictionaryPreviewMeanings"] = entry.preview.count
+                    report["dictionaryExamplesPerPreview"] = entry.preview.map { $0.examples.count }
+                } catch { report["dictionaryError"] = error.localizedDescription }
+                do {
+                    let config = try self.model.assistant.settings.configuration()
+                    let text = try await TranslationService.translate("Salom, dunyo!", direction: .uzEn, configuration: config, session: .shared) { _ in }
+                    report["translationSucceeded"] = !text.isEmpty
+                } catch { report["translationSucceeded"] = false; report["translationErrorCode"] = (error as NSError).code }
+                if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
+                    try? data.write(to: URL(fileURLWithPath: path))
+                }
+            }
         }
         if let i = CommandLine.arguments.firstIndex(of: "--capture-gallery"), CommandLine.arguments.count > i + 1 {
             let directory = CommandLine.arguments[i + 1]
@@ -166,6 +250,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.animationBehavior = .none
         panel.worksWhenModal = true
         if #available(macOS 14.0, *) { panel.collectionBehavior.insert(.canJoinAllApplications) }
+        notch.assistant = model.assistant
+        notch.hover = { [weak self] inside in self?.hoverNotch(inside) }
         notch.accept = { [weak self] in self?.model.monitor?.accept() }
         notch.dismiss = { [weak self] in
             guard let self else { return }
@@ -176,6 +262,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let host = NotchHostingView(rootView: NotchRootView(state: notch).ignoresSafeArea())
         host.autoresizingMask = [.width, .height]
         panel.contentView = host
+    }
+    private func hoverNotch(_ inside: Bool) {
+        hoverWork?.cancel()
+        guard !previewing, model.enabled, model.accessibilityGranted else { return }
+        if inside && !model.assistant.visible {
+            let work = DispatchWorkItem { [weak self] in self?.model.assistant.open() }
+            hoverWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
+        } else if !inside && model.assistant.visible && !model.assistant.details && !model.assistant.busy
+                    && model.assistant.output.isEmpty && model.assistant.entry == nil && !model.assistant.editing {
+            let work = DispatchWorkItem { [weak self] in self?.model.assistant.close() }
+            hoverWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55, execute: work)
+        }
+    }
+    private func updateAssistant() {
+        let assistant = model.assistant
+        model.assistantActive = assistant.visible
+        guard assistant.visible else {
+            panel.allowsEditing = false; panel.resignKey()
+            if model.enabled && model.accessibilityGranted {
+                if let suggestion = model.suggestion { showBar(original: suggestion.original, replacement: suggestion.replacement, preview: false) }
+                else { showActivity(typing: model.isTyping) }
+            } else { panel.orderOut(nil) }
+            return
+        }
+        let screen = activeScreen(), metrics = notchMetrics(screen)
+        let width = min(screen.frame.width - 32, assistant.details ? 670 : 510)
+        let bodyHeight: CGFloat = assistant.details ? min(510, screen.visibleFrame.height - 95) : 295
+        let frame = NotchGeometry.expandedFrame(screen: screen.frame, width: width, contentHeight: bodyHeight + 7,
+            safeTop: metrics.safeTop, centerX: metrics.center, backingScale: screen.backingScaleFactor)
+        notch.contentWidth = width - 70; notch.contentHeight = bodyHeight
+        notch.safeTop = metrics.safeTop + 1 / screen.backingScaleFactor
+        notch.notchWidth = metrics.width
+        notch.typing = assistant.busy
+        if !assistant.editing && panel.allowsEditing { panel.allowsEditing = false; panel.resignKey() }
+        // Skip the window morph for streaming deltas and ordinary body changes.
+        if notch.width == frame.width && notch.height == frame.height && panel.isVisible { return }
+        present(frame: frame, screen: screen, mode: "expanded") {
+            self.notch.result = false; self.notch.typing = assistant.busy; self.notch.settling = false
+        }
     }
     private func activeScreen() -> NSScreen {
         // Use the front app's physical screen, including external monitors.
@@ -321,6 +448,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: work)
     }
 
+    @objc func openAssistant() { model.assistant.open() }
     @objc func showWindow() { NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil) }
     @objc func toggleEnabled() { model.enabled.toggle() }
     @objc func quit() { NSApp.terminate(nil) }
@@ -345,12 +473,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let view = panel.contentView, let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: bitmap)
         try? bitmap.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
-        let layout = NotchLayout(notchWidth: notch.notchWidth)
         let report: [String: Any] = ["frameX": panel.frame.minX, "frameY": panel.frame.minY,
                                    "width": panel.frame.width, "height": panel.frame.height,
                                    "scale": panel.backingScaleFactor, "offsetX": notch.contentOffsetX,
                                    "bodyWidth": notch.width, "bodyContentWidth": notch.contentWidth,
-                                   "bodyInset": layout.bodyInset(in: notch.width), "safeTop": notch.safeTop]
+                                   "bodyInset": (notch.width - notch.contentWidth) / 2, "safeTop": notch.safeTop]
         if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: URL(fileURLWithPath: path.replacingOccurrences(of: ".png", with: ".json")))
         }

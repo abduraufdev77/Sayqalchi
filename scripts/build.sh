@@ -8,7 +8,7 @@ YOZ_STAGE="$(mktemp -d "$PWD/dist/.yoz-build.XXXXXX")"
 trap 'rm -rf "$YOZ_STAGE"' EXIT
 YOZ_APP="$YOZ_STAGE/Sayqalchi.app"
 mkdir -p "$YOZ_APP/Contents/MacOS" "$YOZ_APP/Contents/Resources"
-cp "$YOZ_BUILD_DIR/Yoz" "$YOZ_APP/Contents/MacOS/Yoz"
+cp "$YOZ_BUILD_DIR/Yoz" "$YOZ_APP/Contents/MacOS/Sayqalchi"
 # Replace generated resources so stale/read-only dependency notices cannot break rebuilds.
 rm -rf "$YOZ_APP/Contents/Resources/Yoz_Yoz.bundle"
 cp -R "$YOZ_BUILD_DIR/Yoz_Yoz.bundle" "$YOZ_APP/Contents/Resources/"
@@ -26,21 +26,22 @@ if [[ -z "$YOZ_SIGNER" ]]; then
         YOZ_SIGNER="$(print -r -- "$YOZ_IDENTITIES" | awk '/"Apple Development:/{print $2; exit}')"
     fi
 fi
-if [[ -z "$YOZ_SIGNER" ]]; then
+if [[ -z "$YOZ_SIGNER" || "$YOZ_SIGNER" == "-" ]]; then
+    if [[ "${YOZ_ALLOW_ADHOC_SIGNING:-0}" != "1" ]]; then
+        echo "A signing certificate is required to preserve Accessibility approval. Select YOZ_SIGNING_IDENTITY, or explicitly set YOZ_ALLOW_ADHOC_SIGNING=1 for a disposable development build." >&2
+        exit 1
+    fi
     YOZ_SIGNER="-"
-    echo "No signing certificate found; ad-hoc builds need Accessibility approval again after rebuilding."
+    echo "Explicit ad-hoc development build: Accessibility approval will not survive rebuilds."
 fi
 codesign --force --deep --sign "$YOZ_SIGNER" --identifier uz.yoz.transliterator "$YOZ_APP"
 codesign --verify --deep --strict "$YOZ_APP"
-# Keep the canonical local path: macOS Accessibility grants can be path-bound.
-# The display name is Sayqalchi, and a new-name link opens this same signed app.
-if [[ -e "$PWD/dist/Yoz.app" || -L "$PWD/dist/Yoz.app" ]]; then mv "$PWD/dist/Yoz.app" "$YOZ_STAGE/previous.app"; fi
-if ! mv "$YOZ_APP" "$PWD/dist/Yoz.app"; then
-    if [[ -e "$YOZ_STAGE/previous.app" || -L "$YOZ_STAGE/previous.app" ]]; then mv "$YOZ_STAGE/previous.app" "$PWD/dist/Yoz.app"; fi
+# Publish one real app bundle. The legacy name is only an alias to this copy.
+if [[ -e "$PWD/dist/Sayqalchi.app" || -L "$PWD/dist/Sayqalchi.app" ]]; then mv "$PWD/dist/Sayqalchi.app" "$YOZ_STAGE/previous.app"; fi
+if ! mv "$YOZ_APP" "$PWD/dist/Sayqalchi.app"; then
+    if [[ -e "$YOZ_STAGE/previous.app" || -L "$YOZ_STAGE/previous.app" ]]; then mv "$YOZ_STAGE/previous.app" "$PWD/dist/Sayqalchi.app"; fi
     exit 1
 fi
-if [[ -d "$PWD/dist/Sayqalchi.app" && ! -L "$PWD/dist/Sayqalchi.app" ]]; then
-    mv "$PWD/dist/Sayqalchi.app" "$YOZ_STAGE/previous-name.app"
-fi
-ln -sfn Yoz.app "$PWD/dist/Sayqalchi.app"
+if [[ -e "$PWD/dist/Yoz.app" || -L "$PWD/dist/Yoz.app" ]]; then mv "$PWD/dist/Yoz.app" "$YOZ_STAGE/legacy.app"; fi
+ln -s Sayqalchi.app "$PWD/dist/Yoz.app"
 echo "Built: $PWD/dist/Sayqalchi.app"

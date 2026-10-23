@@ -157,10 +157,10 @@ cd yoz
 ./scripts/build.sh
 ```
 
-Open `dist/Sayqalchi.app`. Local builds retain the original canonical `dist/Yoz.app` directory behind this link to preserve path-bound Accessibility approval; the installer contains a regular `Sayqalchi.app`.
+Run `./scripts/install-local.sh` to install the signed preview at `/Applications/Sayqalchi.app`. Always launch that copy; `dist/Sayqalchi.app` is the build output.
 
 1. Drag **Sayqalchi.app** into **Applications** and open it.
-2. Choose **Enable Accessibility** in Sayqalchi.
+2. Choose **Open Accessibility** in Sayqalchi.
 3. In **System Settings → Privacy & Security → Accessibility**, allow Sayqalchi.
 4. Double-press **Right Shift** to enable suggestions, then type in a supported editor.
 
@@ -168,7 +168,7 @@ New installations start **paused**, with automatic replacement **off**. Updates
 preserve your preferences. Closing the main window keeps Sayqalchi available in the
 menu bar.
 
-The published 0.4.2 build is signed ad hoc and is not notarized. New local builds prefer an installed Apple signing certificate so Accessibility approval survives rebuilding.
+The published 0.4.2 build is signed ad hoc and is not notarized. New local builds require an installed Apple signing certificate so Accessibility approval can survive rebuilding. Disposable development builds can explicitly opt into ad-hoc signing with `YOZ_ALLOW_ADHOC_SIGNING=1`; these require renewed permission after every rebuild.
 macOS may require **System Settings → Privacy & Security → Open Anyway**. Developer ID signing and notarization remain future distribution work.
 
 ### Package an installer
@@ -181,7 +181,7 @@ This creates `dist/Sayqalchi-0.5.0-arm64.dmg` and `dist/SHA256SUMS.txt`. The scr
 the version from `packaging/Info.plist`.
 
 To update, quit Sayqalchi, replace the installed app, and reopen it. A rebuilt or moved
-app may need its Accessibility grant renewed once when moving from ad-hoc signing to a certificate. Permission checks and shortcut recovery continue while Sayqalchi is paused.
+app may need its Accessibility grant renewed once when moving from ad-hoc signing to a certificate. If the old **Yoz** switch is on but Sayqalchi reports permission missing, remove that entry with **−**, then add `/Applications/Sayqalchi.app` with **+** and enable it. macOS may still be approving the old binary hash. Sayqalchi checks permission without repeatedly opening authorization dialogs, and reconnects the shortcut after approval even while paused.
 
 ## Shortcuts
 
@@ -307,7 +307,7 @@ conversion is available through the configured translation service in the 0.5.0 
 
 ## Development
 
-Sayqalchi uses **SwiftUI + AppKit**. The internal SwiftPM target, executable and resource filenames retain Yoz for compatibility; the product and installer are named Sayqalchi. **SwiftSoup** parses dictionary HTML without executing scripts; its MIT notice is bundled with the app. `Package.resolved` pins the dependency.
+Sayqalchi uses **SwiftUI + AppKit**. The internal SwiftPM target and resource filenames retain Yoz for compatibility; the installed executable, product and installer are named Sayqalchi. **SwiftSoup** parses dictionary HTML without executing scripts; its MIT notice is bundled with the app. `Package.resolved` pins the dependency.
 
 ```bash
 swift test                  # Run the automated suite
@@ -354,7 +354,7 @@ Quit any running copy before launching a development capture.
 
 ```bash
 mkdir -p tmp/notch-preview
-dist/Sayqalchi.app/Contents/MacOS/Yoz --background \
+dist/Sayqalchi.app/Contents/MacOS/Sayqalchi --background \
   --notch-gallery "$PWD/tmp/notch-preview"
 ```
 

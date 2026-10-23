@@ -1,9 +1,11 @@
 Sayqalchi 0.5.0 preview for Apple silicon Macs · macOS 13+
 
 1. Drag Sayqalchi into Applications and open it.
-2. Click Enable Accessibility. In System Settings > Privacy & Security >
+2. Click Open Accessibility. In System Settings > Privacy & Security >
    Accessibility, add /Applications/Sayqalchi.app with the + button and turn it on.
-3. If the shortcut is unavailable, quit and reopen Sayqalchi.
+3. If an old Yoz entry is already enabled but access is missing, remove it
+   with -, add /Applications/Sayqalchi.app with +, and enable it once.
+   Keep one installed copy in Applications for future updates.
 4. Double-press Right Shift, or double-click ö in the menu bar, to enable or
    pause Sayqalchi. New installations start paused; updates preserve your preference.
 5. The compact notch indicator animates while you type. Pause for 650 ms to
@@ -42,7 +44,7 @@ text and selection APIs. Custom editors, remote desktops, and some browser
 editors may not expose them. Such fields are skipped; use the Playground to copy
 the transliterated result. Password fields and Terminal are skipped.
 
-Formatting and document helpers run locally. While enabled, typing pauses automatically prepare translation and dictionary results online. Sayqalchi has no analytics, typed-text log, or clipboard monitoring. Web editors that ignore direct replacement use one
+Formatting and document helpers run locally. While enabled, typing pauses run only your default tool. Online tools send text only when selected as the default or opened explicitly. Sayqalchi has no analytics, typed-text log, or clipboard monitoring. Web editors that ignore direct replacement use one
 normal paste; Sayqalchi restores your previous clipboard unless you copied something
 newer. Copy result in the Playground intentionally updates your clipboard.
 

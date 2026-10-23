@@ -4,11 +4,11 @@
 <key>CFBundleName</key><string>Sayqalchi</string>
 <key>CFBundleDisplayName</key><string>Sayqalchi</string>
 <key>CFBundleIdentifier</key><string>uz.yoz.transliterator</string>
-<key>CFBundleExecutable</key><string>Yoz</string>
+<key>CFBundleExecutable</key><string>Sayqalchi</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleIconFile</key><string>Yoz.icns</string>
 <key>CFBundleShortVersionString</key><string>0.5.0</string>
-<key>CFBundleVersion</key><string>16</string>
+<key>CFBundleVersion</key><string>17</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <!-- The app itself requires HTTPS unless the user explicitly enables HTTP
      for their own translation service. Dictionary requests always use HTTPS. -->

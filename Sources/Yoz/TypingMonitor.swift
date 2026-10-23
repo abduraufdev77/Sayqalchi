@@ -84,7 +84,7 @@ final class TypingMonitor {
     /// are paused; otherwise a paused app can never hear its enable shortcut.
     func refreshPermissions() {
         guard let model else { return }
-        let trusted = AXIsProcessTrusted()
+        let trusted = AccessibilityAccess.isGranted
         if model.accessibilityGranted != trusted { model.accessibilityGranted = trusted }
         if !trusted {
             if tap != nil { removeShortcut() }
@@ -325,7 +325,7 @@ final class TypingMonitor {
     }
     /// Capture only an enabled, allowed editable field. Never read protected apps.
     func captureDraft() -> Input? {
-        guard let model, model.enabled, AXIsProcessTrusted(), !IsSecureEventInputEnabled(),
+        guard let model, model.enabled, AccessibilityAccess.isGranted, !IsSecureEventInputEnabled(),
               let front = NSWorkspace.shared.frontmostApplication,
               front.processIdentifier != getpid(), isAllowed(front) else { return nil }
         return readInput(pid: front.processIdentifier)

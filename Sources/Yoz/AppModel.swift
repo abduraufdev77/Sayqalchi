@@ -10,7 +10,7 @@ final class AppModel: ObservableObject {
     @Published var automatic = UserDefaults.standard.bool(forKey: "automaticFullText") {
         didSet { UserDefaults.standard.set(automatic, forKey: "automaticFullText") }
     }
-    @Published var accessibilityGranted = AXIsProcessTrusted()
+    @Published var accessibilityGranted = AccessibilityAccess.isGranted
     @Published var shortcutReady = false
     @Published var suggestion: WordSuggestion?
     @Published var isTyping = false
@@ -33,10 +33,12 @@ final class AppModel: ObservableObject {
     var status: String { !enabled ? "Paused" : accessibilityGranted ? "Ready to write" : "Accessibility needed" }
 
     func openPermissions() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        accessibilityGranted = AXIsProcessTrustedWithOptions(options)
+        accessibilityGranted = AccessibilityAccess.isGranted
         monitor?.refreshPermissions()
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+    }
+    func showAppInFinder() {
+        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
     }
     func copy(_ text: String) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string) }
 }

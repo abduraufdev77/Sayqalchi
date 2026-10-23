@@ -90,11 +90,11 @@ struct OverviewView: View {
                 Image(systemName: model.accessibilityGranted ? "checkmark.shield" : "hand.raised").font(.system(size: 23, weight: .light)).frame(width: 46, height: 46).background(Design.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 5) {
                     Text(model.accessibilityGranted ? "You're ready to write." : "One permission. Every app.").font(Design.font(15, .medium))
-                    Text(model.accessibilityGranted ? "Pause to see your result. Press ⌥ Return to use it." : "Enable Accessibility to suggest letters while you type in other apps.").font(Design.font(11)).foregroundStyle(Design.muted)
+                    Text(model.accessibilityGranted ? "Pause to see your result. Press ⌥ Return to use it." : "Already enabled as Yoz? Remove that old entry, then add Sayqalchi from Applications.").font(Design.font(11)).foregroundStyle(Design.muted)
                 }
                 Spacer()
                 if !model.accessibilityGranted {
-                    ActionButton(title: "Enable Accessibility", icon: "arrow.up.right", color: Design.cyan, textColor: Design.ink) { model.openPermissions() }
+                    ActionButton(title: "Open Accessibility", icon: "arrow.up.right", color: Design.cyan, textColor: Design.ink) { model.openPermissions() }
                 } else {
                     Text("CONNECTED").font(Design.font(9, .semibold)).tracking(1).padding(10).background(Design.green.opacity(0.3), in: Capsule())
                 }
@@ -266,7 +266,13 @@ struct SettingsView: View {
                 }
             }.padding(22).background(.white, in: RoundedRectangle(cornerRadius: 15))
             HStack {
-                VStack(alignment: .leading, spacing: 5) { Text("Accessibility").font(Design.font(15, .medium)); Text(model.accessibilityGranted ? (model.shortcutReady ? "Connected · shortcut active" : "Connected · reconnecting shortcut…") : "Allow Sayqalchi in Privacy & Security → Accessibility").font(Design.font(11)).foregroundStyle(Design.muted) }
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Accessibility").font(Design.font(15, .medium))
+                    Text(model.accessibilityGranted ? (model.shortcutReady ? "Connected · shortcut active" : "Connected · reconnecting shortcut…") : "Remove any old Yoz entry, then use + to add Sayqalchi from Applications and turn it on. An older build’s enabled switch may no longer authorize this app.").font(Design.font(11)).foregroundStyle(Design.muted)
+                    if !model.accessibilityGranted {
+                        Button("Show this app in Finder") { model.showAppInFinder() }.buttonStyle(PointerButtonStyle()).font(Design.font(11)).foregroundStyle(Design.ink)
+                    }
+                }
                 Spacer()
                 ActionButton(title: "Open settings", icon: "arrow.up.right") { model.openPermissions() }
             }

@@ -8,6 +8,14 @@ import ApplicationServices
 @main
 enum YozMain {
     static func main() {
+        // Launching a second copy must not create another permission requester
+        // or a competing global shortcut tap.
+        if let identifier = Bundle.main.bundleIdentifier,
+           let existing = NSRunningApplication.runningApplications(withBundleIdentifier: identifier)
+            .first(where: { $0.processIdentifier != getpid() && !$0.isTerminated }) {
+            existing.activate(options: [.activateAllWindows])
+            return
+        }
         let application = NSApplication.shared
         let delegate = AppDelegate()
         application.delegate = delegate

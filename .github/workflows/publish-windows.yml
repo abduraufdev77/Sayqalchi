@@ -55,5 +55,6 @@ jobs:
         run: |
           set -euo pipefail
           cd downloads
+          sed -i 's/\r$//' SHA256SUMS-windows.txt
           sha256sum --strict -c SHA256SUMS-windows.txt
           gh release upload "$RELEASE_TAG" Sayqalchi-*-windows-x64.exe Sayqalchi-*-windows-x64.zip SHA256SUMS-windows.txt --repo "$GITHUB_REPOSITORY"

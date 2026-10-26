@@ -21,3 +21,13 @@ Apple Development identity and is not notarized; Windows preview binaries are no
 Authenticode-signed. Developer ID/notarization and Windows code signing can be
 added without embedding keys in source or packages. Local rebuilds must retain
 the same macOS certificate and installed path to preserve Accessibility approval.
+
+## Attach Windows artifacts without downloading them locally
+
+After the Windows job succeeds, create and push the reviewed tag explicitly (a
+draft GitHub release alone does not create the Git tag), then create the draft
+release with the Mac DMG and checksum. Run **Attach verified Windows downloads**
+from Actions with that successful run ID and release tag. This workflow checks the
+build came from this repository's `main`, compares platform source against the tag,
+verifies the artifact checksums and attaches the EXE/ZIP directly on GitHub.
+It does not publish the draft. Publish only after all assets are present.

@@ -1,0 +1,20 @@
+<Window x:Class="Sayqalchi.Windows.WidgetWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Sayqalchi widget" Width="318" Height="36" WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="NoResize" Topmost="True" ShowInTaskbar="False" ShowActivated="False" Foreground="White" MouseEnter="HoverEnter" MouseLeave="HoverLeave">
+ <Border Background="Black" CornerRadius="0,0,21,21" Padding="16,0,16,13">
+  <StackPanel>
+   <Grid Height="36"><Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
+    <TextBlock Text="ö" FontSize="25" Foreground="{StaticResource MarkGradient}" VerticalAlignment="Center"/>
+    <TextBlock x:Name="ActivityLabel" Grid.Column="1" Text="Sayqalchi" FontSize="11" Foreground="#858A85" VerticalAlignment="Center"/>
+    <StackPanel x:Name="Waveform" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right"><Border Width="3" Height="7" Background="{StaticResource Cyan}" Margin="2" CornerRadius="2"/><Border Width="3" Height="13" Background="{StaticResource Cyan}" Margin="2" CornerRadius="2"/><Border Width="3" Height="9" Background="{StaticResource Green}" Margin="2" CornerRadius="2"/><Border Width="3" Height="5" Background="{StaticResource Green}" Margin="2" CornerRadius="2"/></StackPanel>
+   </Grid>
+   <StackPanel x:Name="ExpandedControls" Visibility="Collapsed" Margin="0,8,0,9">
+    <UniformGrid Columns="4"><Button x:Name="FormatTab" Content="Aa" ToolTip="Format" Tag="Format" Click="ToolClick" Padding="8,6"/><Button x:Name="TranslateTab" Content="◎" ToolTip="Translate" Tag="Translate" Click="ToolClick" Padding="8,6"/><Button x:Name="IzohchiTab" Content="▣" ToolTip="Izohchi" Tag="Izohchi" Click="ToolClick" Padding="8,6"/><Button x:Name="DocumentTab" Content="▤" ToolTip="Document" Tag="Document" Click="ToolClick" Padding="8,6"/></UniformGrid>
+    <StackPanel x:Name="LanguagesRow" Orientation="Horizontal" Margin="0,9,0,0" Visibility="Collapsed"><ComboBox Width="124" ItemsSource="{Binding Languages}" DisplayMemberPath="Label" SelectedValuePath="Code" SelectedValue="{Binding Source}"/><TextBlock Text="→" Margin="0,6,8,0"/><ComboBox Width="124" ItemsSource="{Binding Languages}" DisplayMemberPath="Label" SelectedValuePath="Code" SelectedValue="{Binding Target}"/></StackPanel>
+   </StackPanel>
+   <StackPanel x:Name="ResultBody" Visibility="Collapsed" Margin="0,7,0,0">
+    <ScrollViewer x:Name="ResultScroll" MaxHeight="155" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><TextBlock x:Name="ResultText" TextWrapping="Wrap" FontSize="15" LineHeight="22"/></ScrollViewer>
+    <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{StaticResource Orange}" FontSize="12"/>
+    <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><Button Content="Copy" IsEnabled="{Binding CanCopy}" Click="CopyClick" Background="#202220" Foreground="White" Padding="10,7"/><Button Content="More ↗" Click="MoreClick" Background="#202220" Foreground="White" Padding="10,7"/></StackPanel><Button Grid.Column="1" Content="Alt ↵" ToolTip="Replace entire draft · Alt + Enter" IsEnabled="{Binding CanApply}" Click="ApplyClick" Background="#17292B" Foreground="{StaticResource Cyan}" FontSize="17" FontWeight="SemiBold" Padding="12,6"/></Grid>
+   </StackPanel>
+  </StackPanel>
+ </Border>
+</Window>

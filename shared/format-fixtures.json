@@ -1,0 +1,13 @@
+[
+ {"input":"O'zbekiston", "expected":"Özbekiston"},
+ {"input":"g'oya", "expected":"ğoya"},
+ {"input":"Shahar", "expected":"Şahar"},
+ {"input":"chiroyli", "expected":"çiroyli"},
+ {"input":"SHOSHILINCH G'ALABA", "expected":"ŞOŞILINÇ ĞALABA"},
+ {"input":"koʻngil toʼgʼri o`zgarish", "expected":"köngil töğri özgariş"},
+ {"input":"ma'no, s'h, 'salom'", "expected":"ma’no, s’h, 'salom'"},
+ {"input":"tong Özbekça Ğ Ş Ç", "expected":"tong Özbekça Ğ Ş Ç"},
+ {"input":"Özbek", "expected":"Özbek"},
+ {"input":"https://shahar.uz/ch?o'g=1 shox@chiroy.uz www.shahar.uz shahar.uz", "expected":"https://shahar.uz/ch?o'g=1 shox@chiroy.uz www.shahar.uz shahar.uz"},
+ {"input":"O'zbekcha yozish oson.\n\nG'oya va shahar.\r\nCHIROQ\t👋 salom!", "expected":"Özbekça yoziş oson.\n\nĞoya va şahar.\r\nÇIROQ\t👋 salom!"}
+]

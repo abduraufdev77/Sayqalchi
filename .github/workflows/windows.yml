@@ -1,0 +1,67 @@
+name: Windows
+on:
+  push:
+    branches: [main]
+    paths: ['windows/**', 'shared/**', 'scripts/package-windows.ps1', 'scripts/audit-secrets.py', 'packaging/windows.iss', '.github/workflows/windows.yml']
+  pull_request:
+    paths: ['windows/**', 'shared/**', 'scripts/package-windows.ps1', 'scripts/audit-secrets.py', 'packaging/windows.iss', '.github/workflows/windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install packaging compiler
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe")) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
+          }
+      - name: Test and package EXE and portable ZIP
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+      - name: Exercise Windows UI Automation and render the app
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath ./dist/windows-x64/Sayqalchi.exe -ArgumentList '--smoke-test' -PassThru
+          if (-not $process.WaitForExit(45000)) { $process.Kill(); throw 'Smoke test timed out' }
+          if ($process.ExitCode -ne 0) {
+            Get-Content smoke-output/failure.txt -ErrorAction SilentlyContinue
+            throw 'Windows desktop smoke test failed'
+          }
+          Get-Content smoke-output/result.txt
+      - name: Verify installer can install and uninstall without elevation
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content windows/Directory.Build.props
+          $version = $props.Project.PropertyGroup.Version
+          $destination = Join-Path $env:RUNNER_TEMP 'Sayqalchi-install-test'
+          $install = Start-Process "dist/Sayqalchi-$version-windows-x64.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$destination`"" -PassThru -Wait
+          if ($install.ExitCode -ne 0 -or -not (Test-Path "$destination/Sayqalchi.exe")) { throw 'Installer failed' }
+          $uninstall = Start-Process "$destination/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0 -or (Test-Path "$destination/Sayqalchi.exe")) { throw 'Uninstaller failed' }
+      - name: Save smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-smoke
+          path: smoke-output/
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-downloads
+          path: |
+            dist/Sayqalchi-*-windows-x64.exe
+            dist/Sayqalchi-*-windows-x64.zip
+            dist/SHA256SUMS-windows.txt
+          if-no-files-found: error

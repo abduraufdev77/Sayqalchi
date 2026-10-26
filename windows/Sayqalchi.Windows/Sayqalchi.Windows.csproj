@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+  <OutputType>WinExe</OutputType><ImplicitUsings>disable</ImplicitUsings><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms>
+  <EnableWindowsTargeting>true</EnableWindowsTargeting><ApplicationIcon>Assets/Sayqalchi.ico</ApplicationIcon>
+  <AssemblyName>Sayqalchi</AssemblyName><RootNamespace>Sayqalchi.Windows</RootNamespace>
+  <PublishSingleFile>true</PublishSingleFile><SelfContained>true</SelfContained><IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  <!-- WPF owns the entry point and DPI manifest; WinForms is used only for NotifyIcon/Screen. -->
+  <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  <ApplicationManifest>app.manifest</ApplicationManifest><StartupObject>Sayqalchi.Windows.App</StartupObject>
+ </PropertyGroup>
+ <ItemGroup>
+  <ProjectReference Include="../Sayqalchi.Core/Sayqalchi.Core.csproj" />
+
+  <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
+  <Resource Include="../../Sources/Yoz/Resources/Fonts/VoiceLab-Latin.ttf" Link="Assets/VoiceLab-Latin.ttf" />
+  <Resource Include="Assets/Sayqalchi.ico" />
+  <Content Include="../../Sources/Yoz/Resources/Fonts/*-OFL.txt" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+ </ItemGroup>
+</Project>

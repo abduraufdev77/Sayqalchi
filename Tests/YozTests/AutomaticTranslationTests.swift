@@ -110,7 +110,8 @@ final class AutomaticTranslationTests: XCTestCase {
     func testManualTypingDebouncesAndSendsLatestWholeDraft() async throws {
         let model = assistant(); model.edit()
         model.input = "First paragraph."
-        try await Task.sleep(nanoseconds: 30_000_000)
+        // Keep edits on the same actor turn. A wall-clock sleep can exceed the
+        // injected 60 ms debounce on a loaded CI runner and start a valid request.
         XCTAssertTrue(AutomaticTranslationProtocol.requests.isEmpty)
         model.input = "First paragraph.\n\nSecond paragraph."
         try await waitUntil { !model.output.isEmpty && !model.busy }

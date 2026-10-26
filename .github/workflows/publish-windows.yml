@@ -1,0 +1,59 @@
+name: Attach verified Windows downloads
+on:
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Successful Windows workflow run ID
+        required: true
+      tag:
+        description: Existing reviewed release tag
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUILD_RUN: ${{ inputs.build_run }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require a successful trusted build and matching release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$BUILD_RUN" =~ ^[0-9]+$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN" > "$RUNNER_TEMP/run.json"
+          python3 - <<'PY'
+          import json, os
+          data=json.load(open(os.environ['RUNNER_TEMP']+'/run.json'))
+          assert data['conclusion']=='success' and data['head_branch']=='main'
+          assert data['path']=='.github/workflows/windows.yml'
+          assert data['head_repository']['full_name']==os.environ['GITHUB_REPOSITORY']
+          PY
+          build_sha="$(python3 -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/run.json"))["head_sha"])')"
+          git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}"
+          git diff --exit-code "$build_sha" "refs/tags/$RELEASE_TAG" -- windows shared scripts/package-windows.ps1 scripts/audit-secrets.py packaging/windows.iss .github/workflows/windows.yml
+          gh release view "$RELEASE_TAG" --json tagName
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-downloads
+          run-id: ${{ inputs.build_run }}
+          github-token: ${{ github.token }}
+          path: downloads
+      - name: Verify and attach the reviewed packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd downloads
+          sha256sum --strict -c SHA256SUMS-windows.txt
+          gh release upload "$RELEASE_TAG" Sayqalchi-*-windows-x64.exe Sayqalchi-*-windows-x64.zip SHA256SUMS-windows.txt --repo "$GITHUB_REPOSITORY"

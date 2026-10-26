@@ -52,7 +52,7 @@ and known password managers are excluded; Settings adds process exclusions.
 - MyMemory requests contain text and language direction, with no shared token or
   email. The provider's limits apply and it may retain text. See its
   [usage limits](https://mymemory.translated.net/doc/usagelimits.php) and
-  [terms](https://mymemory.translated.net/doc/terms.php).
+  [terms](https://mymemory.translated.net/terms-and-conditions).
 - Custom credentials are encrypted with Windows DPAPI for the current user,
   outside the installation at `%LOCALAPPDATA%\Sayqalchi\credential.bin`.
   Settings contain no key. No real `.env` file is copied into packages.

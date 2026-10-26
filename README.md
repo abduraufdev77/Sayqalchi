@@ -152,6 +152,14 @@ or focus changes before acceptance, Sayqalchi waits for a fresh suggestion.
 
 [All downloads and SHA-256 checksums](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.6.0-preview.1). The Windows EXE is an unsigned preview; the macOS DMG is development-signed and not notarized.
 
+<details>
+<summary><strong>See the Windows preview</strong></summary>
+
+<img src="docs/windows-playground.png" alt="Sayqalchi’s native Windows Playground formatting two paragraphs" width="760">
+<img src="docs/windows-widget.png" alt="The compact Windows result widget with orange letter changes and Alt Enter acceptance" width="340">
+
+</details>
+
 On **Windows**, install the EXE or extract the ZIP, then double-press Right Shift to enable. Accept with **Alt + Enter**. The tray menu opens Settings and the Playground. Only editors exposing writable Windows UI Automation fields support direct replacement; use copy in other editors. [Windows guide](docs/WINDOWS.md).
 
 On **macOS**, drag the app to Applications, grant Accessibility and double-press Right Shift. Accept with **Option + Return**. Continue below for source builds and approval recovery.
@@ -308,7 +316,7 @@ preview. Pause in the intended field to get a fresh one. Fields larger than
 Cross-app suggestions cover the **whole focused editable field**, including text
 after the cursor. A selection does not restrict that scope. Copy a smaller
 passage into the Playground when you want to convert it separately. Cyrillic
-conversion is available through the configured translation service in the 0.5.0 preview; it is not included in the stable 0.4.2 formatter.
+conversion is local with the public provider in the current preview; it is not included in the older stable 0.4.2 formatter.
 
 </details>
 

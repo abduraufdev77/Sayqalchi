@@ -25,6 +25,7 @@ internal static class SmokeTest
             if (draft == null || draft.Text != original) throw new Exception("Whole editable draft was not captured.");
             var replaced = await worker.Run(() => EditorAccess.Apply(draft, Formatter.Convert(original), [], true)).WaitAsync(TimeSpan.FromSeconds(8));
             if (!replaced || editor.Text != Formatter.Convert(original)) throw new Exception("Whole-draft replacement failed.");
+            if (editor.CaretIndex != editor.Text.Length || editor.SelectionLength != 0) throw new Exception("Replacement did not leave the caret ready to continue typing.");
             editor.Text = "A newer draft";
             if (await worker.Run(() => EditorAccess.Apply(draft, "Must not replace", [], true))) throw new Exception("Stale replacement was allowed.");
             var password = new PasswordBox { Password = "disposable-fixture-only" }; window.Content = password; password.Focus(); await Task.Delay(150);

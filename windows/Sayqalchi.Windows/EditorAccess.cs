@@ -70,6 +70,17 @@ internal static class EditorAccess
         if (current == null || current.ProcessId != draft.ProcessId || current.Window != draft.Window || !current.RuntimeId.SequenceEqual(draft.RuntimeId) || current.Text != draft.Text) return false;
         if (!current.Element.TryGetCurrentPattern(ValuePattern.Pattern, out var value) || ((ValuePattern)value).Current.IsReadOnly) return false;
         ((ValuePattern)value).SetValue(replacement);
-        return EditableText(current.Element) == replacement;
+        var confirmed = EditableText(current.Element) == replacement;
+        // ValuePattern.SetValue can reset a provider's caret to the beginning.
+        // Leave the verified editor ready for the next typed character.
+        if (confirmed && Native.GetForegroundWindow() == current.Window &&
+            AutomationElement.FocusedElement?.GetRuntimeId().SequenceEqual(current.RuntimeId) == true &&
+            current.Element.TryGetCurrentPattern(TextPattern.Pattern, out var textPattern))
+        {
+            var end = ((TextPattern)textPattern).DocumentRange.Clone();
+            end.MoveEndpointByRange(TextPatternRangeEndpoint.Start, end, TextPatternRangeEndpoint.End);
+            end.Select();
+        }
+        return confirmed;
     }
 }

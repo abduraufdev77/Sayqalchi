@@ -66,6 +66,17 @@ public class PopupIntegrationTest {
   draft().setText("O‘zbekiston shahar");assertTrue(device.wait(Until.hasObject(By.text("Ўзбекистон шаҳар")),5000));
   device.findObject(By.text("More ↗")).click();assertTrue(device.wait(Until.hasObject(By.text("Ўзбекистон шаҳар")),5000));
  }
+ @Test public void popupTabsAndLanguageBadgeWork()throws Exception{
+  InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{try{Preferences prefs=new Preferences(target);prefs.saveKey("fixture-only");prefs.values.edit().putBoolean("custom",true).putString("url","http://10.0.2.2:18325").putBoolean("allowHttp",true).apply();}catch(Exception error){throw new AssertionError(error);}});
+  draft().setText("O'zbekcha");assertTrue(device.wait(Until.hasObject(By.text("Özbekça")),5000));
+  device.findObject(By.desc("Show Sayqalchi tools")).click();
+  device.findObject(By.desc("Translate")).click();
+  assertTrue(device.wait(Until.hasObject(By.text("Translated: O'zbekcha")),8000));
+  device.findObject(By.desc("Show Sayqalchi tools")).click();
+  assertTrue(device.wait(Until.hasObject(By.text("EN")),3000));device.findObject(By.text("EN")).click();
+  assertTrue(device.wait(Until.hasObject(By.text("Ўзбек")),3000));device.findObject(By.text("Ўзбек")).click();
+  assertTrue(device.wait(Until.hasObject(By.text("Ўзбекча")),5000));
+ }
  @Test public void keystoreDoesNotPersistPlaintext()throws Exception{
   Preferences prefs=new Preferences(target);prefs.saveKey("fixture-secret-android-only");assertEquals("fixture-secret-android-only",prefs.readKey());
   assertFalse(prefs.values.getString("encryptedKey","").contains("fixture-secret-android-only"));assertFalse(prefs.values.getAll().containsValue("fixture-secret-android-only"));

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -14,13 +15,17 @@ public partial class WidgetWindow : Window
     private readonly DispatcherTimer hoverDelay = new() { Interval = TimeSpan.FromMilliseconds(250) };
     public bool Expanded { get; private set; }
     private bool showingResult;
+    private readonly DispatcherTimer resizeTimer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(16) };
+    private long resizeStarted;
+    private double fromWidth, fromHeight, toWidth, toHeight;
     internal WidgetWindow(Controller controller)
     {
         this.controller = controller; InitializeComponent(); DataContext = controller;
         SourceInitialized += (_, _) => { Native.NoActivate(this); Position(); };
+        resizeTimer.Tick += (_, _) => ResizeFrame();
         SizeChanged += (_, _) => Position();
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += DisplayChanged;
-        Closed += (_, _) => { Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplayChanged; hoverDelay.Stop(); };
+        Closed += (_, _) => { Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplayChanged; hoverDelay.Stop(); resizeTimer.Stop(); };
         hoverDelay.Tick += (_, _) => { hoverDelay.Stop(); Expanded = false; Refresh(); };
     }
     private void DisplayChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(Position);
@@ -61,12 +66,27 @@ public partial class WidgetWindow : Window
         var width = Expanded ? 440 : hasResult ? 340 : 318;
         ResultBody.Measure(new Size(width - 32, double.PositiveInfinity));
         var height = 36 + (Expanded ? controller.ActiveTool == Tool.Translate ? 97 : 58 : 0) + (hasResult ? ResultBody.DesiredSize.Height + 20 : 0);
-        Animate(WidthProperty, width); Animate(HeightProperty, Math.Min(Expanded ? 420 : 270, height));
+        ResizeTo(width, Math.Min(Expanded ? 420 : 270, height));
     }
-    private void Animate(DependencyProperty property, double target)
+    private void ResizeTo(double width, double height)
     {
-        var current = (double)GetValue(property); var duration = SystemParameters.ClientAreaAnimation ? 280 : 0;
-        BeginAnimation(property, new DoubleAnimation(current, target, TimeSpan.FromMilliseconds(duration)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }, FillBehavior = FillBehavior.HoldEnd });
+        if (Math.Abs(toWidth - width) < 0.5 && Math.Abs(toHeight - height) < 0.5 && resizeTimer.IsEnabled) return;
+        fromWidth = ActualWidth > 0 ? ActualWidth : Width;
+        fromHeight = ActualHeight > 0 ? ActualHeight : Height;
+        toWidth = width; toHeight = height;
+        if (!SystemParameters.ClientAreaAnimation) { Width = width; Height = height; UpdateLayout(); return; }
+        resizeStarted = Stopwatch.GetTimestamp(); resizeTimer.Start();
+    }
+    private void ResizeFrame()
+    {
+        var progress = Math.Min(1, Stopwatch.GetElapsedTime(resizeStarted).TotalMilliseconds / 280);
+        var eased = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.Pow(-2 * progress + 2, 3) / 2;
+        // Apply real native window dimensions on each frame. Animating only
+        // Window.Height's dependency value can leave its HWND at the old height.
+        Width = fromWidth + (toWidth - fromWidth) * eased;
+        Height = fromHeight + (toHeight - fromHeight) * eased;
+        UpdateLayout();
+        if (progress >= 1) resizeTimer.Stop();
     }
     private void HoverEnter(object sender, System.Windows.Input.MouseEventArgs e) { hoverDelay.Stop(); Expanded = true; Refresh(); }
     private void HoverLeave(object sender, System.Windows.Input.MouseEventArgs e) => hoverDelay.Start();

@@ -34,7 +34,12 @@ internal static class SmokeTest
             if (!controller.Enabled) controller.Toggle();
             controller.Input = original; await Task.Delay(900);
             if (controller.Result != Formatter.Convert(original)) throw new Exception("Playground pause did not prepare formatting.");
+            // Allow the result's 280 ms transition to finish before rendering.
+            await Task.Delay(400);
             Directory.CreateDirectory("smoke-output");
+            var widget = app.Windows.OfType<WidgetWindow>().Single();
+            File.WriteAllText("smoke-output/layout.txt", $"Result length: {controller.Result.Length}; busy: {controller.Busy}; widget: {widget.Width} x {widget.Height}; actual: {widget.ActualWidth} x {widget.ActualHeight}; body: {widget.ResultBody.Visibility}");
+            if (widget.ActualHeight <= 36 || widget.ResultBody.Visibility != Visibility.Visible) throw new Exception("The automatic result did not expand the widget.");
             foreach (Window view in app.Windows)
             {
                 if (!view.IsVisible || view.ActualWidth < 1 || view.ActualHeight < 1) continue;

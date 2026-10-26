@@ -31,3 +31,18 @@ from Actions with that successful run ID and release tag. This workflow checks t
 build came from this repository's `main`, compares platform source against the tag,
 verifies the artifact checksums and attaches the EXE/ZIP directly on GitHub.
 It does not publish the draft. Publish only after all assets are present.
+
+## Android APK
+
+Android uses its own preview tag (`v0.6.1-android.1`) and `versionCode` sequence.
+Run `python3 scripts/package-android.py` on the machine holding the persistent
+Android signing profile outside this repository. It builds and signs the universal
+APK, verifies its signature and scans the extracted package. Never upload the
+keystore/profile/password. Keep the same key for updates and increment versionCode
+for subsequent public Android builds.
+
+Wait for the Android core/lint/emulator checks. Review the actual popup screenshot
+and install the signed APK on the disposable emulator. Publish only
+`Sayqalchi-<version>-android.apk` and `SHA256SUMS-android.txt`, then update the Android
+README link. The separate fixture app, debug APK and instrumentation APK are test
+artifacts and must not be attached as consumer downloads.

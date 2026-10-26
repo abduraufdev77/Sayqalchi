@@ -13,6 +13,7 @@
 
   <Resource Include="../../Sources/Yoz/Resources/Fonts/VoiceLab-Latin.ttf" Link="Assets/VoiceLab-Latin.ttf" />
   <Resource Include="Assets/Sayqalchi.ico" />
+  <Content Include="../HtmlAgilityPack-LICENSE.txt" Link="Licenses/HtmlAgilityPack-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   <Content Include="../../Sources/Yoz/Resources/Fonts/*-OFL.txt" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
  </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-Sayqalchi 0.5.0 preview for Apple silicon Macs · macOS 13+
+Sayqalchi 0.6.0 preview for Apple silicon Macs · macOS 13+
 
 1. Drag Sayqalchi into Applications and open it.
 2. Click Open Accessibility. In System Settings > Privacy & Security >

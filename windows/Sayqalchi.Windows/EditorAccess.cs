@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Windows.Automation;
+using System.Windows.Automation.Text;
 using Sayqalchi.Core;
 
 namespace Sayqalchi.Windows;
@@ -41,7 +42,17 @@ internal static class EditorAccess
         if (element.TryGetCurrentPattern(TextPattern.Pattern, out var pattern))
         {
             var ranges = ((TextPattern)pattern).GetSelection();
-            if (ranges.Length == 1) selection = ranges[0].GetText(Maximum + 1);
+            if (ranges.Length == 1)
+            {
+                selection = ranges[0].GetText(Maximum + 1);
+                if (selection.Length == 0)
+                {
+                    var prefix = ((TextPattern)pattern).DocumentRange.Clone();
+                    prefix.MoveEndpointByRange(TextPatternRangeEndpoint.End, ranges[0], TextPatternRangeEndpoint.Start);
+                    try { selection = WritingServices.DictionaryQuery(prefix.GetText(Maximum + 1)); }
+                    catch (InvalidOperationException) { }
+                }
+            }
         }
         return new(element, element.GetRuntimeId(), pid, window, text, selection, app);
     }

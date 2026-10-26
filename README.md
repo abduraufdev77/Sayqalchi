@@ -6,15 +6,19 @@
 
 ### Your everyday writing companion.
 
-Previously **Yoz**. The new name keeps the same settings, Keychain service, and macOS bundle identity. The repository and earlier releases retain their existing URLs.
+Previously **Yoz**. The new name keeps the same settings, Keychain service, and macOS bundle identity. Earlier Yoz release links still redirect to this repository.
 
 Format. Translate. Understand. Keep writing.<br>
-A native assistant that grows out of your Mac’s notch.
+A native assistant in your Mac’s notch or at the top of your Windows screen.
 
-[![Version](https://img.shields.io/badge/version-0.5.0_preview-00DDF1?style=flat-square)](packaging/Info.plist)
+[![Version](https://img.shields.io/badge/version-0.6.0_preview-00DDF1?style=flat-square)](packaging/Info.plist)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-1B1D1B?style=flat-square&logo=apple&logoColor=white)](#install)
-[![Apple silicon](https://img.shields.io/badge/build-Apple_silicon-91EF57?style=flat-square)](#install)
+[![Platforms](https://img.shields.io/badge/platform-macOS_%7C_Windows-91EF57?style=flat-square)](#install)
+[![Windows checks](https://github.com/abduraufdev77/Sayqalchi/actions/workflows/windows.yml/badge.svg)](https://github.com/abduraufdev77/Sayqalchi/actions/workflows/windows.yml)
 [![Automatic tools](https://img.shields.io/badge/online_tools-after_pause-FF743D?style=flat-square)](#your-data)
+
+<a href="https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-arm64.dmg"><img alt="Download macOS DMG" src="https://img.shields.io/badge/Download_macOS-.dmg-1B1D1B?style=for-the-badge&amp;logo=apple&amp;logoColor=white"></a>
+<a href="https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-windows-x64.exe"><img alt="Download Windows EXE" src="https://img.shields.io/badge/Download_Windows-.exe-91EF57?style=for-the-badge&amp;logoColor=1B1D1B"></a>
 
 **[Install](#install) · [Shortcuts](#shortcuts) · [The alphabet](#the-alphabet) · [Your data](#your-data) · [Development](#development)**
 
@@ -22,7 +26,7 @@ A native assistant that grows out of your Mac’s notch.
 
 </div>
 
-> **Stable download:** [Yoz 0.4.2](https://github.com/abduraufdev77/yoz/releases/tag/v0.4.2) includes the whole-draft formatter. This branch contains the **0.5.0 preview**, adding the writing assistant described below.
+> **[Sayqalchi 0.6.0 preview](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.6.0-preview.1):** macOS DMG + Windows EXE / portable ZIP. Windows is a new preview with editor compatibility limits. [Android options](docs/ANDROID.md) are assessed; no APK is shipped. The earlier stable formatter remains [Yoz 0.4.2](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.4.2).
 
 ## One notch. Four writing tools.
 
@@ -140,20 +144,23 @@ or focus changes before acceptance, Sayqalchi waits for a fresh suggestion.
 
 ## Install
 
-**Requirements:** macOS 13 or later. Current packaged builds target Apple silicon.
-Building from source needs Xcode Command Line Tools with Swift 5.9 or later.
+| Platform | Download | Requirements |
+| --- | --- | --- |
+| macOS | **[Download DMG](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-arm64.dmg)** | macOS 13+, Apple silicon |
+| Windows | **[Download EXE installer](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-windows-x64.exe)** · [Portable ZIP](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-windows-x64.zip) | Windows 10 1809+ / Windows 11, x64; no .NET install needed |
+| Android | [Options and proposed implementation](docs/ANDROID.md) | Assessment only; no APK yet |
 
-### Download the stable release
+[All downloads and SHA-256 checksums](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.6.0-preview.1). The Windows EXE is an unsigned preview; the macOS DMG is development-signed and not notarized.
 
-The earlier stable release keeps the Yoz name. Download [Yoz-0.4.2-arm64.dmg](https://github.com/abduraufdev77/yoz/releases/download/v0.4.2/Yoz-0.4.2-arm64.dmg)
-and the accompanying [SHA-256 checksum](https://github.com/abduraufdev77/yoz/releases/download/v0.4.2/SHA256SUMS.txt).
-The new assistant is in the 0.5.0 source preview, not the stable 0.4.2 DMG.
+On **Windows**, install the EXE or extract the ZIP, then double-press Right Shift to enable. Accept with **Alt + Enter**. The tray menu opens Settings and the Playground. Only editors exposing writable Windows UI Automation fields support direct replacement; use copy in other editors. [Windows guide](docs/WINDOWS.md).
+
+On **macOS**, drag the app to Applications, grant Accessibility and double-press Right Shift. Accept with **Option + Return**. Continue below for source builds and approval recovery.
 
 ### Build the preview app
 
 ```bash
-git clone https://github.com/abduraufdev77/yoz.git
-cd yoz
+git clone https://github.com/abduraufdev77/Sayqalchi.git
+cd Sayqalchi
 ./scripts/build.sh
 ```
 
@@ -177,7 +184,7 @@ macOS may require **System Settings → Privacy & Security → Open Anyway**. De
 ./scripts/package-dmg.sh
 ```
 
-This creates `dist/Sayqalchi-0.5.0-arm64.dmg` and `dist/SHA256SUMS.txt`. The script reads
+This creates `dist/Sayqalchi-0.6.0-arm64.dmg` and `dist/SHA256SUMS.txt`. The script reads
 the version from `packaging/Info.plist`.
 
 To update, quit Sayqalchi, replace the installed app, and reopen it. A rebuilt or moved
@@ -189,7 +196,7 @@ app may need its Accessibility grant renewed once when moving from ad-hoc signin
 | --- | --- |
 | Enable or pause Sayqalchi | Double-press **Right Shift** |
 | Enable or pause from the menu bar | Double-click **ö** |
-| Accept the complete suggestion | **Option + Return**, or click **⌥ ↵** |
+| Accept the complete suggestion | macOS: **Option + Return** · Windows: **Alt + Enter**, or click the combined button |
 | Dismiss the suggestion or assistant | **Escape** |
 | Open writing tools | Hover the notch, or choose **Writing tools** in the ö menu |
 | Open Sayqalchi, preview the notch, or quit | Click **ö** to open its menu |
@@ -315,11 +322,11 @@ swift test                  # Run the automated suite
 ./scripts/package-dmg.sh    # Create a versioned DMG and checksum
 ```
 
-The **45 automated tests** cover alphabet rules, Unicode offsets, whole-field
+The **64 macOS automated tests** cover alphabet rules, Unicode offsets, whole-field
 scope, nested editors, paragraph boundaries, double-press timing, notch geometry,
 the six translation directions and HTTP contract, incomplete/error streams,
 dictionary parsing and preview limits, URL validation, document cleanup, automatic preparation, cancellation, and cached tab switching.
-Mock transport tests do not require credentials or internet access.
+Mock transport tests do not require credentials or internet access. The Windows engine/service suite adds **44 checks**, including the same shared alphabet fixtures. Windows CI also runs native UI Automation and installer smoke checks. See [Windows development](docs/WINDOWS.md) and [release packaging](docs/RELEASING.md).
 
 See [0.5.0 validation notes](docs/assistant-validation.md) for live checks and known limits.
 

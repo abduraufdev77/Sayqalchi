@@ -23,8 +23,16 @@ be controlled by this normal-user process. No administrator access is needed.
 This preview is not Authenticode-signed. See the source and SHA256 checksums
 on the official GitHub release. Never disable Windows security protections.
 '@ | Set-Content 'dist/windows-x64/Read me.txt' -Encoding utf8
-$license = Join-Path $env:USERPROFILE '.nuget/packages/htmlagilitypack/1.13.1'
-Get-ChildItem $license -Filter '*license*' -File | ForEach-Object { Copy-Item $_.FullName 'dist/windows-x64/Licenses/HtmlAgilityPack-license.txt' }
+# Bundle the runtime redistribution notices beside the single-file app.
+$runtimePackages = Join-Path $env:USERPROFILE '.nuget/packages'
+foreach ($package in @('microsoft.netcore.app.runtime.win-x64', 'microsoft.windowsdesktop.app.runtime.win-x64')) {
+    $folder = Get-ChildItem (Join-Path $runtimePackages $package) -Directory | Sort-Object Name -Descending | Select-Object -First 1
+    if ($folder) {
+        Get-ChildItem $folder.FullName -File | Where-Object { $_.Name -match 'LICENSE|ThirdPartyNotices' } | ForEach-Object {
+            Copy-Item $_.FullName (Join-Path 'dist/windows-x64/Licenses' "$package-$($_.Name)")
+        }
+    }
+}
 $compiler = "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe"
 if (-not (Test-Path $compiler)) { throw 'Install Inno Setup 6 from https://jrsoftware.org/isdl.php, then rerun this script.' }
 & $compiler "/DAppVersion=$version" packaging/windows.iss

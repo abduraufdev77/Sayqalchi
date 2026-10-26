@@ -10,3 +10,9 @@ tmp/
 windows/**/bin/
 windows/**/obj/
 windows/.vs/
+android/.gradle/
+android/**/build/
+android/local.properties
+android/.idea/
+*.jks
+*.keystore

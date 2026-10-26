@@ -9,16 +9,18 @@
 Previously **Yoz**. The new name keeps the same settings, Keychain service, and macOS bundle identity. Earlier Yoz release links still redirect to this repository.
 
 Format. Translate. Understand. Keep writing.<br>
-A native assistant in your Mac’s notch or at the top of your Windows screen.
+A native assistant in your Mac’s notch, at the top of Windows, or in a compact Android popup.
 
 [![Version](https://img.shields.io/badge/version-0.6.0_preview-00DDF1?style=flat-square)](packaging/Info.plist)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-1B1D1B?style=flat-square&logo=apple&logoColor=white)](#install)
-[![Platforms](https://img.shields.io/badge/platform-macOS_%7C_Windows-91EF57?style=flat-square)](#install)
+[![Platforms](https://img.shields.io/badge/platform-macOS_%7C_Windows_%7C_Android-91EF57?style=flat-square)](#install)
 [![Windows checks](https://github.com/abduraufdev77/Sayqalchi/actions/workflows/windows.yml/badge.svg)](https://github.com/abduraufdev77/Sayqalchi/actions/workflows/windows.yml)
 [![Automatic tools](https://img.shields.io/badge/online_tools-after_pause-FF743D?style=flat-square)](#your-data)
 
 <a href="https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-arm64.dmg"><img alt="Download macOS DMG" src="https://img.shields.io/badge/Download_macOS-.dmg-1B1D1B?style=for-the-badge&amp;logo=apple&amp;logoColor=white"></a>
 <a href="https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-windows-x64.exe"><img alt="Download Windows EXE" src="https://img.shields.io/badge/Download_Windows-.exe-91EF57?style=for-the-badge&amp;logoColor=1B1D1B"></a>
+
+<a href="https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.1-android.1/Sayqalchi-0.6.1-android.apk"><img alt="Download Android APK" src="https://img.shields.io/badge/Download_Android-.apk-91EF57?style=for-the-badge&amp;logo=android&amp;logoColor=1B1D1B"></a>
 
 **[Install](#install) · [Shortcuts](#shortcuts) · [The alphabet](#the-alphabet) · [Your data](#your-data) · [Development](#development)**
 
@@ -26,7 +28,7 @@ A native assistant in your Mac’s notch or at the top of your Windows screen.
 
 </div>
 
-> **[Sayqalchi 0.6.0 preview](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.6.0-preview.1):** macOS DMG + Windows EXE / portable ZIP. Windows is a new preview with editor compatibility limits. [Android options](docs/ANDROID.md) are assessed; no APK is shipped. The earlier stable formatter remains [Yoz 0.4.2](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.4.2).
+> **[Sayqalchi 0.6.0 preview](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.6.0-preview.1):** macOS DMG + Windows EXE / portable ZIP. Windows is a new preview with editor compatibility limits. [Android 0.6.1 preview](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.6.1-android.1) adds automatic cross-app popup suggestions. The earlier stable formatter remains [Yoz 0.4.2](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.4.2).
 
 ## One notch. Four writing tools.
 
@@ -148,7 +150,7 @@ or focus changes before acceptance, Sayqalchi waits for a fresh suggestion.
 | --- | --- | --- |
 | macOS | **[Download DMG](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-arm64.dmg)** | macOS 13+, Apple silicon |
 | Windows | **[Download EXE installer](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-windows-x64.exe)** · [Portable ZIP](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.0-preview.1/Sayqalchi-0.6.0-windows-x64.zip) | Windows 10 1809+ / Windows 11, x64; no .NET install needed |
-| Android | [Options and proposed implementation](docs/ANDROID.md) | Assessment only; no APK yet |
+| Android | **[Download APK](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.1-android.1/Sayqalchi-0.6.1-android.apk)** · [Setup guide](docs/ANDROID.md) | Android 8.0+; Accessibility is enabled by the user |
 
 [All downloads and SHA-256 checksums](https://github.com/abduraufdev77/Sayqalchi/releases/tag/v0.6.0-preview.1). The Windows EXE is an unsigned preview; the macOS DMG is development-signed and not notarized.
 
@@ -161,6 +163,8 @@ or focus changes before acceptance, Sayqalchi waits for a fresh suggestion.
 </details>
 
 On **Windows**, install the EXE or extract the ZIP, then double-press Right Shift to enable. Accept with **Alt + Enter**. The tray menu opens Settings and the Playground. Only editors exposing writable Windows UI Automation fields support direct replacement; use copy in other editors. [Windows guide](docs/WINDOWS.md).
+
+On **Android**, install the [APK](https://github.com/abduraufdev77/Sayqalchi/releases/download/v0.6.1-android.1/Sayqalchi-0.6.1-android.apk), open Sayqalchi, read the disclosure and enable **Sayqalchi suggestions** in Accessibility. Keep your existing keyboard; after a pause, the popup shows your result automatically. Tap **Use** to replace the full draft. A Quick Settings tile pauses/resumes it. [Android guide and privacy](docs/ANDROID.md).
 
 On **macOS**, drag the app to Applications, grant Accessibility and double-press Right Shift. Accept with **Option + Return**. Continue below for source builds and approval recovery.
 

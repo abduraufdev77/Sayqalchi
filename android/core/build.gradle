@@ -1,0 +1,9 @@
+plugins { id 'java-library' }
+java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+dependencies {
+    implementation 'org.jsoup:jsoup:1.21.2'
+    compileOnly 'org.json:json:20250517'
+    testImplementation 'org.json:json:20250517'
+    testImplementation 'junit:junit:4.13.2'
+}
+tasks.named('test') { systemProperty 'sayqalchi.fixtures', rootProject.file('../shared/format-fixtures.json').absolutePath }

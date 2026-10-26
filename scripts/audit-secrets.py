@@ -47,6 +47,8 @@ def main():
         name = raw.decode(); file = ROOT / name
         if Path(name).name.startswith(".env") and Path(name).name != ".env.example":
             failures.append("tracked environment file: " + name)
+        elif file.suffix.lower() in {".jks", ".keystore", ".p12", ".pfx"} or file.name in {"signing.properties", "signing.json"}:
+            failures.append("private signing material: " + name)
         elif file.is_file() and matches(file.read_bytes()):
             failures.append("working file: " + name)
     objects = 0

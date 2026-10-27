@@ -32,7 +32,7 @@ public final class SuggestionService extends AccessibilityService implements Pop
   boolean same=snapshot!=null&&snapshot.node.equals(field)&&snapshot.text.equals(text);
   if(same&&(tool!=TextTools.Tool.IZOHCHI||snapshot.start==next.start&&snapshot.end==next.end))return;
   invalidate();snapshot=next;tool=preferences.tool();result=null;dismissed="";
-  popup.processing(tool);long id=generation;pending=()->{if(id==generation)process();};handler.postDelayed(pending,650);
+  popup.processing(tool,true);long id=generation;pending=()->{if(id==generation)process();};handler.postDelayed(pending,650);
  }
  private AccessibilityNodeInfo focused(){
   AccessibilityNodeInfo root=getRootInActiveWindow();AccessibilityNodeInfo field=root==null?null:root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);if(field!=null)return field;
@@ -76,7 +76,20 @@ public final class SuggestionService extends AccessibilityService implements Pop
  @Override public void dismiss(){if(snapshot!=null)dismissed=snapshot.key();invalidate();result=null;popup.idle(tool);}
  @Override public void pause(){preferences.enabled(false);}
  @Override public void language(boolean source){popup.chooseLanguage(source,source?preferences.source():preferences.target(),code->{String from=source?code:preferences.source(),to=source?preferences.target():code;if(!TextTools.supported(from,to)){if(source)to=from.equals("uz-Latn")?"en":"uz-Latn";else from=to.equals("uz-Latn")?"en":"uz-Latn";}preferences.languages(from,to);});}
- @Override public void onSharedPreferenceChanged(SharedPreferences prefs,String key){handler.post(()->{if(!preferences.enabled()||!preferences.consent()){clear();return;}if(snapshot!=null){tool=preferences.tool();dismissed="";process();}});}
+ @Override public void onSharedPreferenceChanged(SharedPreferences prefs,String key){handler.post(()->{
+  // Android sends a null key when SharedPreferences is cleared. Drop the old
+  // draft as well as its pending work before reading the reset configuration.
+  if(key==null){clear();return;}
+  if(!preferences.enabled()||!preferences.consent()){clear();return;}
+  if(snapshot==null)return;
+  if(preferences.excluded(snapshot.pkg)){clear();return;}
+  if(key.equals("defaultTool"))tool=preferences.tool();
+  else if(tool!=TextTools.Tool.TRANSLATE||!Arrays.asList("source","target","custom","url","encryptedKey","keyIv","allowHttp").contains(key))return;
+  // Keep an explicitly opened tool selected; coalesce paired language changes
+  // so one badge choice cannot spend two public translation requests.
+  invalidate();dismissed="";long id=generation;pending=()->{if(id==generation)process();};handler.postDelayed(pending,80);
+ });}
+
  @Override public void onInterrupt(){clear();}
  @Override public void onDestroy(){clear();connected=null;if(preferences!=null)preferences.values.unregisterOnSharedPreferenceChangeListener(this);try{unregisterReceiver(screen);}catch(Exception ignored){}executor.shutdownNow();super.onDestroy();}
  @Override public void onConfigurationChanged(android.content.res.Configuration configuration){super.onConfigurationChanged(configuration);clear();}

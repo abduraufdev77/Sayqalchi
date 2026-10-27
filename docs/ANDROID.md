@@ -111,10 +111,10 @@ scope, stale targets, protected links, local scripts, provider credential
 isolation, paragraph-preserving segmentation, dictionary limits, URL checks,
 completed streams and cancellation.
 
-Seven Android 15 emulator integration tests exercise a separate disposable
+Eight Android 15 emulator integration tests exercise a separate disposable
 editor app: popup after pause, whole-paragraph Use, stale result protection,
 password exclusion, custom HTTP translation with a local test server, pausing,
-local Cyrillic conversion/details and Keystore encryption. Instrumentation
+local Cyrillic conversion/details, popup language selection and Keystore encryption. Instrumentation
 permission setup is guarded to run only on disposable emulators; it is not part
 of the release APK. The test editor and mock credentials are not shipped.
 

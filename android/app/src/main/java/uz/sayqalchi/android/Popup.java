@@ -11,7 +11,7 @@ import uz.sayqalchi.core.*;
 
 final class Popup {
  interface Actions {void choose(TextTools.Tool tool);void apply();void copy();void details();void dismiss();void pause();void language(boolean source);}
- private final Context context;private final WindowManager windows;private final Actions actions;private final LinearLayout root,body,tabs,languages;private final LinearLayout header;private final TextView status,result,caption,use;private final Ui.Waveform waveform;
+ private final Context context;private final WindowManager windows;private final Actions actions;private final LinearLayout root,body,tabs,languages,choices;private final LinearLayout header;private final TextView status,result,caption,use;private final Ui.Waveform waveform;
  private final WindowManager.LayoutParams params;private final Map<TextTools.Tool,TextView> badges=new EnumMap<>(TextTools.Tool.class);
  private boolean attached,expanded;private ValueAnimator resize;private TextTools.Tool selected=TextTools.Tool.FORMAT;private int currentWidth,currentHeight;
  Popup(Context context,Actions actions){
@@ -21,7 +21,7 @@ final class Popup {
   status=Ui.text(context,"Format",11,Ui.MUTED);status.setPadding(Ui.dp(context,9),0,0,0);header.addView(status,Ui.weight());waveform=new Ui.Waveform(context);header.addView(waveform,new LinearLayout.LayoutParams(Ui.dp(context,38),Ui.dp(context,22)));root.addView(header,new LinearLayout.LayoutParams(-1,Ui.dp(context,36)));
   header.setOnClickListener(v->{expanded=!expanded;updateVisibility();});header.setContentDescription("Show Sayqalchi tools");
   tabs=Ui.row(context);String[] labels={"Aa","◎","▣","▤"};for(TextTools.Tool tool:TextTools.Tool.values()){TextView badge=Ui.button(context,labels[tool.ordinal()],0xff202420,0xffeeeeee,()->actions.choose(tool));badge.setContentDescription(tool.label());LinearLayout.LayoutParams lp=Ui.weight();lp.setMargins(0,0,Ui.dp(context,5),0);tabs.addView(badge,lp);badges.put(tool,badge);}root.addView(tabs);
-  languages=Ui.row(context);root.addView(languages);
+  languages=Ui.row(context);root.addView(languages);choices=Ui.column(context);choices.setVisibility(View.GONE);root.addView(choices);
   body=Ui.column(context);caption=Ui.text(context,"Entire draft",10,Ui.MUTED);body.addView(caption);Ui.space(body,8);
   ScrollView scroll=new ScrollView(context);scroll.setFillViewport(false);result=Ui.text(context,"",15,0xfff6f6f1);result.setLineSpacing(Ui.dp(context,3),1);scroll.addView(result);body.addView(scroll,new LinearLayout.LayoutParams(-1,-2));
   LinearLayout footer=Ui.row(context);Ui.space(body,12);body.addView(footer);TextView copy=Ui.button(context,"Copy",0xff202420,0xfff6f6f1,actions::copy);footer.addView(copy);TextView more=Ui.button(context,"More ↗",0xff202420,0xfff6f6f1,actions::details);LinearLayout.LayoutParams moreLp=new LinearLayout.LayoutParams(-2,-2);moreLp.setMargins(Ui.dp(context,6),0,0,0);footer.addView(more,moreLp);View gap=new View(context);footer.addView(gap,Ui.weight());use=Ui.button(context,"Use ↵",Ui.CYAN,Ui.INK,actions::apply);use.setContentDescription("Use suggested text");footer.addView(use);root.addView(body);
@@ -33,17 +33,22 @@ final class Popup {
  private int maxWidth(){return Math.min(Ui.dp(context,360),context.getResources().getDisplayMetrics().widthPixels-Ui.dp(context,24));}
  void show(){if(attached)return;try{windows.addView(root,params);attached=true;}catch(RuntimeException ignored){attached=false;}}
  void hide(){if(resize!=null)resize.cancel();waveform.busy(false);if(attached){try{windows.removeView(root);}catch(RuntimeException ignored){}attached=false;}expanded=false;}
- void processing(TextTools.Tool tool){selected=tool;result.setText("");body.setVisibility(View.GONE);status.setText(tool.label());waveform.busy(true);expanded=false;updateVisibility();show();}
- void idle(TextTools.Tool tool){selected=tool;waveform.busy(false);result.setText("");status.setText(tool.label());expanded=false;updateVisibility();}
+ void processing(TextTools.Tool tool){processing(tool,false);}
+ void processing(TextTools.Tool tool,boolean compact){if(compact){expanded=false;choices.setVisibility(View.GONE);}selected=tool;result.setText("");body.setVisibility(View.GONE);status.setText(tool.label());waveform.busy(true);updateVisibility();show();}
+ void idle(TextTools.Tool tool){selected=tool;waveform.busy(false);result.setText("");status.setText(tool.label());expanded=false;choices.setVisibility(View.GONE);updateVisibility();}
  void result(String input,Engine.Result output,boolean canUse,String app){selected=output.tool;waveform.busy(false);status.setText(output.tool.label());caption.setText(app+" · "+output.summary);result.setTextColor(0xfff6f6f1);result.setText(Ui.rendered(input,output));use.setEnabled(canUse);use.setVisibility(output.tool==TextTools.Tool.IZOHCHI?View.GONE:View.VISIBLE);limitResultHeight();updateVisibility();show();}
  void error(String message){waveform.busy(false);caption.setText("Sayqalchi");result.setText(message);result.setTextColor(Ui.ORANGE);use.setEnabled(false);limitResultHeight();updateVisibility();show();}
  private void limitResultHeight(){int width=maxWidth()-Ui.dp(context,32);result.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));android.view.ViewGroup scroll=(android.view.ViewGroup)result.getParent();scroll.setLayoutParams(new LinearLayout.LayoutParams(-1,Math.min(Ui.dp(context,180),result.getMeasuredHeight()+Ui.dp(context,2))));}
  void languages(String source,String target){languages.removeAllViews();TextView from=Ui.button(context,shortLang(source),0xff202420,Ui.CYAN,()->actions.language(true));TextView arrow=Ui.text(context,"  ⇄  ",15,Ui.MUTED);TextView to=Ui.button(context,shortLang(target),0xff202420,Ui.CYAN,()->actions.language(false));languages.addView(from);languages.addView(arrow);languages.addView(to);}
  static String shortLang(String language){switch(language){case "en":return "EN";case "ru":return "RU";case "uz-Cyrl":return "ЎЗ";default:return "UZ";}}
  void chooseLanguage(boolean source,String current,java.util.function.Consumer<String> selected){
-  android.widget.PopupMenu menu=new android.widget.PopupMenu(context,source?languages.getChildAt(0):languages.getChildAt(2));String[] codes={"uz-Latn","en","ru","uz-Cyrl"};String[] names={"O‘zbek","English","Русский","Ўзбек"};for(int i=0;i<codes.length;i++)menu.getMenu().add(0,i,i,names[i]).setCheckable(true).setChecked(codes[i].equals(current));menu.setOnMenuItemClickListener(item->{selected.accept(codes[item.getItemId()]);return true;});menu.show();
+  choices.removeAllViews();choices.setVisibility(View.VISIBLE);
+  String[] codes={"uz-Latn","en","ru","uz-Cyrl"};String[] names={"O‘zbek","English","Русский","Ўзбек"};
+  for(int row=0;row<2;row++){LinearLayout line=Ui.row(context);choices.addView(line);for(int column=0;column<2;column++){int index=row*2+column;TextView option=Ui.button(context,names[index],codes[index].equals(current)?0xff173135:0xff202420,codes[index].equals(current)?Ui.CYAN:0xffeeeeee,()->{choices.setVisibility(View.GONE);selected.accept(codes[index]);updateVisibility();});LinearLayout.LayoutParams lp=Ui.weight();lp.setMargins(0,Ui.dp(context,4),Ui.dp(context,4),0);line.addView(option,lp);}}
+  updateVisibility();
  }
  private void updateVisibility(){
+  if(!expanded||selected!=TextTools.Tool.TRANSLATE)choices.setVisibility(View.GONE);
   tabs.setVisibility(expanded?View.VISIBLE:View.GONE);((View)tabs.getTag()).setVisibility(expanded?View.VISIBLE:View.GONE);languages.setVisibility(expanded&&selected==TextTools.Tool.TRANSLATE?View.VISIBLE:View.GONE);body.setVisibility(result.getText().length()>0?View.VISIBLE:View.GONE);
   for(Map.Entry<TextTools.Tool,TextView> entry:badges.entrySet()){boolean active=entry.getKey()==selected;entry.getValue().setBackground(Ui.rounded(active?Ui.GREEN:0xff202420,20,context));entry.getValue().setTextColor(active?Ui.INK:0xffdddddd);}
   boolean big=expanded||body.getVisibility()==View.VISIBLE;int width=big?maxWidth():Ui.dp(context,188);

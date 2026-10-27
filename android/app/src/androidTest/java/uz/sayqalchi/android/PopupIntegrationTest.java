@@ -72,7 +72,7 @@ public class PopupIntegrationTest {
   device.findObject(By.desc("Show Sayqalchi tools")).click();
   device.findObject(By.desc("Translate")).click();
   assertTrue(device.wait(Until.hasObject(By.text("Translated: O'zbekcha")),8000));
-  device.findObject(By.desc("Show Sayqalchi tools")).click();
+  if(!device.hasObject(By.text("EN")))device.findObject(By.desc("Show Sayqalchi tools")).click();
   assertTrue(device.wait(Until.hasObject(By.text("EN")),3000));device.findObject(By.text("EN")).click();
   assertTrue(device.wait(Until.hasObject(By.text("Ўзбек")),3000));device.findObject(By.text("Ўзбек")).click();
   assertTrue(device.wait(Until.hasObject(By.text("Ўзбекча")),5000));
